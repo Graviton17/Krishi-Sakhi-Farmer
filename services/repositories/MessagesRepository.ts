@@ -1,9 +1,10 @@
 import { supabase } from "../../lib/supabase/client";
 import { TABLE_NAMES } from "../config";
 import { logger } from "../logger";
+import { Message } from "../types";
 import { BaseRepository } from "./BaseRepository";
 
-export class MessagesRepository extends BaseRepository {
+export class MessagesRepository extends BaseRepository<Message> {
   constructor() {
     super(TABLE_NAMES.MESSAGES);
   }

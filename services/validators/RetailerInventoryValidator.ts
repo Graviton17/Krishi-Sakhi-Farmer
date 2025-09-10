@@ -23,8 +23,8 @@ export interface RetailerInventoryAdjustmentData {
   reason?: string;
 }
 
-// Validation result interface
-export interface ValidationResult {
+// Local validation result interface for retailer inventory operations
+interface ValidationResult {
   isValid: boolean;
   errors: string[];
   warnings?: string[];

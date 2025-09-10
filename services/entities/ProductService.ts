@@ -77,9 +77,19 @@ export class ProductService
     try {
       this.logBusinessEvent("getByFarmer", { farmerId });
 
-      // This would require a join or separate query through product listings
-      // For now, return empty array - would need to implement through ProductListingService
-      return this.createResponse<Product[]>([], null);
+      // Use the ProductRepository's enhanced method
+      const productRepository = this.repository as ProductRepository;
+      const result = await productRepository.findByFarmer(farmerId);
+
+      if (result.error) {
+        const serviceError = this.handleRepositoryError(
+          result.error,
+          "getByFarmer"
+        );
+        return this.createResponse<Product[]>(null, serviceError);
+      }
+
+      return this.createResponse<Product[]>(result.data || [], null);
     } catch (error) {
       const serviceError = this.handleRepositoryError(error, "getByFarmer");
       return this.createResponse<Product[]>(null, serviceError);

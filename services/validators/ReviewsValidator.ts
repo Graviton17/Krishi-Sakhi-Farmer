@@ -1,8 +1,9 @@
 import { BUSINESS_RULES } from "../config";
-import { ValidationResult } from "../types";
+import { Review, ValidationResult } from "../types";
 import { BaseValidator } from "./BaseValidator";
+import { VALIDATION_ERROR_CODES } from "./ValidationErrorCodes";
 
-export class ReviewsValidator extends BaseValidator {
+export class ReviewsValidator extends BaseValidator<Review> {
   /**
    * Validate review creation data
    */
@@ -15,21 +16,51 @@ export class ReviewsValidator extends BaseValidator {
   }): ValidationResult {
     const errors: ValidationResult["errors"] = [];
 
-    // Required fields
+    // Required fields with UUID validation
     if (!data.reviewer_id) {
       errors.push(
-        this.createError("reviewer_id", "Reviewer ID is required", "REQUIRED")
+        this.createError(
+          "reviewer_id",
+          "Reviewer ID is required",
+          VALIDATION_ERROR_CODES.REQUIRED
+        )
+      );
+    } else if (!this.isValidUUID(data.reviewer_id)) {
+      errors.push(
+        this.createError(
+          "reviewer_id",
+          "Invalid reviewer ID format",
+          VALIDATION_ERROR_CODES.INVALID_UUID
+        )
       );
     }
 
     if (!data.listing_id) {
       errors.push(
-        this.createError("listing_id", "Listing ID is required", "REQUIRED")
+        this.createError(
+          "listing_id",
+          "Listing ID is required",
+          VALIDATION_ERROR_CODES.REQUIRED
+        )
+      );
+    } else if (!this.isValidUUID(data.listing_id)) {
+      errors.push(
+        this.createError(
+          "listing_id",
+          "Invalid listing ID format",
+          VALIDATION_ERROR_CODES.INVALID_UUID
+        )
       );
     }
 
     if (data.rating === undefined || data.rating === null) {
-      errors.push(this.createError("rating", "Rating is required", "REQUIRED"));
+      errors.push(
+        this.createError(
+          "rating",
+          "Rating is required",
+          VALIDATION_ERROR_CODES.REQUIRED
+        )
+      );
     } else {
       // Rating validation
       if (
@@ -40,56 +71,69 @@ export class ReviewsValidator extends BaseValidator {
           this.createError(
             "rating",
             `Rating must be between ${BUSINESS_RULES.REVIEW.MIN_RATING} and ${BUSINESS_RULES.REVIEW.MAX_RATING}`,
-            "RANGE"
+            VALIDATION_ERROR_CODES.INVALID_VALUE
           )
         );
       }
 
       if (!Number.isInteger(data.rating)) {
         errors.push(
-          this.createError("rating", "Rating must be a whole number", "INVALID")
+          this.createError(
+            "rating",
+            "Rating must be a whole number",
+            VALIDATION_ERROR_CODES.INVALID_TYPE
+          )
         );
       }
     }
 
     // Comment validation
     if (data.comment) {
-      if (data.comment.length < BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH) {
-        errors.push(
-          this.createError(
-            "comment",
-            `Comment must be at least ${BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH} characters long`,
-            "MIN_LENGTH"
-          )
-        );
+      // Use BaseValidator methods for string validation with proper length checks
+      if (
+        !this.isValidString(
+          data.comment,
+          BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH,
+          BUSINESS_RULES.REVIEW.MAX_COMMENT_LENGTH
+        )
+      ) {
+        if (data.comment.length < BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH) {
+          errors.push(
+            this.createError(
+              "comment",
+              `Comment must be at least ${BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH} characters long`,
+              "MIN_LENGTH"
+            )
+          );
+        } else {
+          errors.push(
+            this.createError(
+              "comment",
+              `Comment cannot exceed ${BUSINESS_RULES.REVIEW.MAX_COMMENT_LENGTH} characters`,
+              "MAX_LENGTH"
+            )
+          );
+        }
       }
 
-      if (data.comment.length > BUSINESS_RULES.REVIEW.MAX_COMMENT_LENGTH) {
-        errors.push(
-          this.createError(
-            "comment",
-            `Comment cannot exceed ${BUSINESS_RULES.REVIEW.MAX_COMMENT_LENGTH} characters`,
-            "MAX_LENGTH"
-          )
-        );
-      }
-
-      // Check for inappropriate content patterns
+      // Use BaseValidator's inappropriate content detection
       if (this.containsInappropriateContent(data.comment)) {
         errors.push(
           this.createError(
             "comment",
             "Comment contains inappropriate content",
-            "INAPPROPRIATE"
+            VALIDATION_ERROR_CODES.INAPPROPRIATE
           )
         );
       }
     }
 
-    // Status validation
+    // Status validation using enum validation
     if (
       data.status &&
-      !BUSINESS_RULES.REVIEW.ALLOWED_STATUSES.includes(data.status as any)
+      !this.isValidEnum(data.status, [
+        ...BUSINESS_RULES.REVIEW.ALLOWED_STATUSES,
+      ])
     ) {
       errors.push(
         this.createError(
@@ -97,7 +141,7 @@ export class ReviewsValidator extends BaseValidator {
           `Status must be one of: ${BUSINESS_RULES.REVIEW.ALLOWED_STATUSES.join(
             ", "
           )}`,
-          "INVALID"
+          VALIDATION_ERROR_CODES.INVALID_VALUE
         )
       );
     }
@@ -121,54 +165,62 @@ export class ReviewsValidator extends BaseValidator {
     // Rating validation (if provided)
     if (data.rating !== undefined && data.rating !== null) {
       if (
-        data.rating < BUSINESS_RULES.REVIEW.MIN_RATING ||
-        data.rating > BUSINESS_RULES.REVIEW.MAX_RATING
+        !this.isWithinRange(
+          data.rating,
+          BUSINESS_RULES.REVIEW.MIN_RATING,
+          BUSINESS_RULES.REVIEW.MAX_RATING
+        )
       ) {
         errors.push(
           this.createError(
             "rating",
             `Rating must be between ${BUSINESS_RULES.REVIEW.MIN_RATING} and ${BUSINESS_RULES.REVIEW.MAX_RATING}`,
-            "RANGE"
+            VALIDATION_ERROR_CODES.INVALID_VALUE
           )
         );
       }
 
       if (!Number.isInteger(data.rating)) {
         errors.push(
-          this.createError("rating", "Rating must be a whole number", "INVALID")
+          this.createError(
+            "rating",
+            "Rating must be a whole number",
+            VALIDATION_ERROR_CODES.INVALID_TYPE
+          )
         );
       }
     }
 
-    // Comment validation (if provided)
-    if (data.comment !== undefined) {
+    // Comment validation (if provided) - use BaseValidator methods
+    if (data.comment !== undefined && data.comment !== null) {
       if (
         data.comment &&
-        data.comment.length < BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH
+        !this.isValidString(
+          data.comment,
+          BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH,
+          BUSINESS_RULES.REVIEW.MAX_COMMENT_LENGTH
+        )
       ) {
-        errors.push(
-          this.createError(
-            "comment",
-            `Comment must be at least ${BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH} characters long`,
-            "MIN_LENGTH"
-          )
-        );
+        if (data.comment.length < BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH) {
+          errors.push(
+            this.createError(
+              "comment",
+              `Comment must be at least ${BUSINESS_RULES.REVIEW.MIN_COMMENT_LENGTH} characters long`,
+              "MIN_LENGTH"
+            )
+          );
+        } else {
+          errors.push(
+            this.createError(
+              "comment",
+              `Comment cannot exceed ${BUSINESS_RULES.REVIEW.MAX_COMMENT_LENGTH} characters`,
+              "MAX_LENGTH"
+            )
+          );
+        }
       }
 
-      if (
-        data.comment &&
-        data.comment.length > BUSINESS_RULES.REVIEW.MAX_COMMENT_LENGTH
-      ) {
-        errors.push(
-          this.createError(
-            "comment",
-            `Comment cannot exceed ${BUSINESS_RULES.REVIEW.MAX_COMMENT_LENGTH} characters`,
-            "MAX_LENGTH"
-          )
-        );
-      }
-
-      // Check for inappropriate content patterns
+      // Use BaseValidator's inappropriate content detection
       if (data.comment && this.containsInappropriateContent(data.comment)) {
         errors.push(
           this.createError(
@@ -183,7 +235,9 @@ export class ReviewsValidator extends BaseValidator {
     // Status validation (if provided)
     if (
       data.status &&
-      !BUSINESS_RULES.REVIEW.ALLOWED_STATUSES.includes(data.status as any)
+      !this.isValidEnum(data.status, [
+        ...BUSINESS_RULES.REVIEW.ALLOWED_STATUSES,
+      ])
     ) {
       errors.push(
         this.createError(
@@ -191,7 +245,7 @@ export class ReviewsValidator extends BaseValidator {
           `Status must be one of: ${BUSINESS_RULES.REVIEW.ALLOWED_STATUSES.join(
             ", "
           )}`,
-          "INVALID"
+          VALIDATION_ERROR_CODES.INVALID_VALUE
         )
       );
     }
@@ -217,11 +271,13 @@ export class ReviewsValidator extends BaseValidator {
         this.createError(
           "status",
           "Status is required for moderation",
-          "REQUIRED"
+          VALIDATION_ERROR_CODES.REQUIRED
         )
       );
     } else if (
-      !BUSINESS_RULES.REVIEW.ALLOWED_STATUSES.includes(data.status as any)
+      !this.isValidEnum(data.status, [
+        ...BUSINESS_RULES.REVIEW.ALLOWED_STATUSES,
+      ])
     ) {
       errors.push(
         this.createError(
@@ -229,13 +285,13 @@ export class ReviewsValidator extends BaseValidator {
           `Status must be one of: ${BUSINESS_RULES.REVIEW.ALLOWED_STATUSES.join(
             ", "
           )}`,
-          "INVALID"
+          VALIDATION_ERROR_CODES.INVALID_VALUE
         )
       );
     }
 
-    // Admin notes validation
-    if (data.admin_notes && data.admin_notes.length > 500) {
+    // Admin notes validation - use BaseValidator
+    if (data.admin_notes && !this.isValidString(data.admin_notes, 1, 500)) {
       errors.push(
         this.createError(
           "admin_notes",
@@ -249,20 +305,6 @@ export class ReviewsValidator extends BaseValidator {
       isValid: errors.length === 0,
       errors,
     };
-  }
-
-  /**
-   * Check for inappropriate content patterns
-   */
-  private containsInappropriateContent(text: string): boolean {
-    const inappropriatePatterns = [
-      /\b(spam|fake|scam|fraud)\b/i,
-      /\b(hate|offensive|inappropriate)\b/i,
-      /(.)\1{4,}/, // Repeated characters (spammy)
-      /[A-Z]{5,}/, // All caps words (shouting)
-    ];
-
-    return inappropriatePatterns.some((pattern) => pattern.test(text));
   }
 
   /**

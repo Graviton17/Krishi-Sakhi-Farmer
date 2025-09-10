@@ -26,8 +26,8 @@ export interface TemperatureRangeData {
   max_temp: number;
 }
 
-// Validation result interface
-export interface ValidationResult {
+// Local validation result interface for cold chain log operations
+interface ValidationResult {
   isValid: boolean;
   errors: string[];
   warnings?: string[];

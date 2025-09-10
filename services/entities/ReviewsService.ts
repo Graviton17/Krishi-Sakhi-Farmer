@@ -1,420 +1,181 @@
 import { TABLE_NAMES } from "../config";
 import { EnhancedBaseService } from "../database";
-import { logger } from "../logger";
 import { ReviewsRepository } from "../repositories/ReviewsRepository";
-import { ServiceErrorCode, ServiceResponse } from "../types";
-import { ReviewsValidator } from "../validators/ReviewsValidator";
+import {
+  IReviewService,
+  Review,
+  ServiceErrorCode,
+  ServiceResponse,
+} from "../types";
 
-interface CreateReviewData {
-  reviewer_id: string;
-  listing_id: string;
-  rating: number;
-  comment?: string;
-  status?: string;
-}
-
-interface UpdateReviewData {
-  rating?: number;
-  comment?: string;
-  status?: string;
-}
-
-export class ReviewsService extends EnhancedBaseService {
-  private reviewsValidator: ReviewsValidator;
-
+/**
+ * Enhanced Reviews Service following standard patterns
+ * Implements business logic with proper error handling and validation
+ */
+export class ReviewsService
+  extends EnhancedBaseService<Review>
+  implements IReviewService
+{
   constructor() {
     super(new ReviewsRepository(), "Review");
-    this.reviewsValidator = new ReviewsValidator();
   }
 
   protected getTableName(): string {
     return TABLE_NAMES.REVIEWS;
   }
 
-  /**
-   * Create a new review
-   */
-  async createReview(data: CreateReviewData): Promise<ServiceResponse<any>> {
+  async getByListing(listingId: string): Promise<ServiceResponse<Review[]>> {
     try {
-      this.logBusinessEvent("createReview", { listingId: data.listing_id });
+      this.logBusinessEvent("getByListing", { listingId });
 
-      // Validate input data
-      const validation = this.reviewsValidator.validateCreate(data);
-      if (!validation.isValid) {
-        const serviceError = this.createError(
+      if (!listingId) {
+        const error = this.createError(
           ServiceErrorCode.VALIDATION_ERROR,
-          "Invalid review data",
-          validation.errors,
-          "createReview"
+          "Listing ID is required",
+          { listingId },
+          "getByListing"
         );
-        return this.createResponse(null, serviceError);
+        return this.createResponse<Review[]>(null, error);
       }
-
-      // Check if user has already reviewed this listing
-      const repository = this.repository as ReviewsRepository;
-      const hasReviewed = await repository.hasUserReviewed(
-        data.reviewer_id,
-        data.listing_id
-      );
-      if (hasReviewed) {
-        const serviceError = this.handleRepositoryError(
-          new Error("You have already reviewed this listing"),
-          "createReview"
-        );
-        return this.createResponse(null, serviceError);
-      }
-
-      // Set default status if not provided
-      const reviewData = {
-        ...data,
-        status: data.status || "pending",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const result = await repository.create(reviewData);
-
-      if (result.error) {
-        const serviceError = this.handleRepositoryError(
-          result.error,
-          "createReview"
-        );
-        return this.createResponse(null, serviceError);
-      }
-
-      logger.info(`Review created successfully for listing ${data.listing_id}`);
-      return this.createResponse(result.data, null);
-    } catch (error) {
-      logger.error("Error creating review:", error as Error);
-      const serviceError = this.handleRepositoryError(
-        error as Error,
-        "createReview"
-      );
-      return this.createResponse(null, serviceError);
-    }
-  }
-
-  /**
-   * Get reviews for a specific listing
-   */
-  async getReviewsByListing(listingId: string): Promise<ServiceResponse<any>> {
-    try {
-      this.logBusinessEvent("getReviewsByListing", { listingId });
 
       const repository = this.repository as ReviewsRepository;
       const reviews = await repository.findByListing(listingId);
-      const averageRating = await repository.getAverageRating(listingId);
 
-      return this.createResponse(
-        {
-          reviews,
-          summary: averageRating,
-        },
-        null
-      );
+      return this.createResponse<Review[]>(reviews, null);
     } catch (error) {
-      logger.error(
-        `Error getting reviews for listing ${listingId}:`,
-        error as Error
-      );
-      const serviceError = this.handleRepositoryError(
-        error as Error,
-        "getReviewsByListing"
-      );
-      return this.createResponse(null, serviceError);
+      const serviceError = this.handleRepositoryError(error, "getByListing");
+      return this.createResponse<Review[]>(null, serviceError);
     }
   }
 
-  /**
-   * Get reviews by a specific reviewer
-   */
-  async getReviewsByReviewer(
-    reviewerId: string
-  ): Promise<ServiceResponse<any[]>> {
+  async getByReviewer(reviewerId: string): Promise<ServiceResponse<Review[]>> {
     try {
-      this.logBusinessEvent("getReviewsByReviewer", { reviewerId });
+      this.logBusinessEvent("getByReviewer", { reviewerId });
+
+      if (!reviewerId) {
+        const error = this.createError(
+          ServiceErrorCode.VALIDATION_ERROR,
+          "Reviewer ID is required",
+          { reviewerId },
+          "getByReviewer"
+        );
+        return this.createResponse<Review[]>(null, error);
+      }
 
       const repository = this.repository as ReviewsRepository;
       const reviews = await repository.findByReviewer(reviewerId);
-      return this.createResponse(reviews, null);
+
+      return this.createResponse<Review[]>(reviews, null);
     } catch (error) {
-      logger.error(
-        `Error getting reviews by reviewer ${reviewerId}:`,
-        error as Error
-      );
+      const serviceError = this.handleRepositoryError(error, "getByReviewer");
+      return this.createResponse<Review[]>(null, serviceError);
+    }
+  }
+
+  async getAverageRating(listingId: string): Promise<ServiceResponse<number>> {
+    try {
+      this.logBusinessEvent("getAverageRating", { listingId });
+
+      if (!listingId) {
+        const error = this.createError(
+          ServiceErrorCode.VALIDATION_ERROR,
+          "Listing ID is required",
+          { listingId },
+          "getAverageRating"
+        );
+        return this.createResponse<number>(null, error);
+      }
+
+      const repository = this.repository as ReviewsRepository;
+      const result = await repository.getAverageRating(listingId);
+
+      return this.createResponse<number>(result.average, null);
+    } catch (error) {
       const serviceError = this.handleRepositoryError(
-        error as Error,
-        "getReviewsByReviewer"
+        error,
+        "getAverageRating"
       );
-      return this.createResponse<any[]>([], serviceError);
+      return this.createResponse<number>(null, serviceError);
+    }
+  }
+
+  async hasUserReviewed(
+    listingId: string,
+    reviewerId: string
+  ): Promise<ServiceResponse<boolean>> {
+    try {
+      this.logBusinessEvent("hasUserReviewed", { listingId, reviewerId });
+
+      if (!listingId || !reviewerId) {
+        const error = this.createError(
+          ServiceErrorCode.VALIDATION_ERROR,
+          "Listing ID and Reviewer ID are required",
+          { listingId, reviewerId },
+          "hasUserReviewed"
+        );
+        return this.createResponse<boolean>(null, error);
+      }
+
+      const repository = this.repository as ReviewsRepository;
+      const hasReviewed = await repository.hasUserReviewed(
+        reviewerId,
+        listingId
+      );
+
+      return this.createResponse<boolean>(hasReviewed, null);
+    } catch (error) {
+      const serviceError = this.handleRepositoryError(error, "hasUserReviewed");
+      return this.createResponse<boolean>(null, serviceError);
     }
   }
 
   /**
-   * Get all reviews for a farmer's listings
+   * Get reviews by farmer (through product listings)
    */
-  async getReviewsByFarmer(farmerId: string): Promise<ServiceResponse<any[]>> {
+  async getByFarmer(farmerId: string): Promise<ServiceResponse<Review[]>> {
     try {
-      this.logBusinessEvent("getReviewsByFarmer", { farmerId });
+      this.logBusinessEvent("getByFarmer", { farmerId });
+
+      if (!farmerId) {
+        const error = this.createError(
+          ServiceErrorCode.VALIDATION_ERROR,
+          "Farmer ID is required",
+          { farmerId },
+          "getByFarmer"
+        );
+        return this.createResponse<Review[]>(null, error);
+      }
 
       const repository = this.repository as ReviewsRepository;
       const reviews = await repository.findByFarmer(farmerId);
-      return this.createResponse(reviews, null);
+
+      return this.createResponse<Review[]>(reviews, null);
     } catch (error) {
-      logger.error(
-        `Error getting reviews for farmer ${farmerId}:`,
-        error as Error
-      );
-      const serviceError = this.handleRepositoryError(
-        error as Error,
-        "getReviewsByFarmer"
-      );
-      return this.createResponse<any[]>([], serviceError);
-    }
-  }
-
-  /**
-   * Update an existing review
-   */
-  async updateReview(
-    id: string,
-    data: UpdateReviewData
-  ): Promise<ServiceResponse<any>> {
-    try {
-      this.logBusinessEvent("updateReview", { id });
-
-      // Validate update data
-      const validation = this.reviewsValidator.validateUpdate(data);
-      if (!validation.isValid) {
-        const serviceError = this.createError(
-          ServiceErrorCode.VALIDATION_ERROR,
-          "Invalid update data",
-          validation.errors,
-          "updateReview"
-        );
-        return this.createResponse(null, serviceError);
-      }
-
-      // Check if review exists
-      const existingResult = await this.repository.findById(id);
-      if (existingResult.error || !existingResult.data) {
-        const serviceError = this.handleRepositoryError(
-          new Error("Review not found"),
-          "updateReview"
-        );
-        return this.createResponse(null, serviceError);
-      }
-
-      // Update review
-      const updateData = {
-        ...data,
-        updated_at: new Date().toISOString(),
-      };
-
-      const result = await this.repository.update(id, updateData);
-
-      if (result.error) {
-        const serviceError = this.handleRepositoryError(
-          result.error,
-          "updateReview"
-        );
-        return this.createResponse(null, serviceError);
-      }
-
-      logger.info(`Review ${id} updated successfully`);
-      return this.createResponse(result.data, null);
-    } catch (error) {
-      logger.error(`Error updating review ${id}:`, error as Error);
-      const serviceError = this.handleRepositoryError(
-        error as Error,
-        "updateReview"
-      );
-      return this.createResponse(null, serviceError);
-    }
-  }
-
-  /**
-   * Delete a review
-   */
-  async deleteReview(id: string): Promise<ServiceResponse<boolean>> {
-    try {
-      this.logBusinessEvent("deleteReview", { id });
-
-      const existsResult = await this.repository.findById(id);
-      if (existsResult.error || !existsResult.data) {
-        const serviceError = this.handleRepositoryError(
-          new Error("Review not found"),
-          "deleteReview"
-        );
-        return this.createResponse<boolean>(false, serviceError);
-      }
-
-      const result = await this.repository.delete(id);
-
-      if (result.error) {
-        const serviceError = this.handleRepositoryError(
-          result.error,
-          "deleteReview"
-        );
-        return this.createResponse<boolean>(false, serviceError);
-      }
-
-      logger.info(`Review ${id} deleted successfully`);
-      return this.createResponse<boolean>(true, null);
-    } catch (error) {
-      logger.error(`Error deleting review ${id}:`, error as Error);
-      const serviceError = this.handleRepositoryError(
-        error as Error,
-        "deleteReview"
-      );
-      return this.createResponse<boolean>(false, serviceError);
-    }
-  }
-
-  /**
-   * Moderate reviews (admin function)
-   */
-  async moderateReview(
-    id: string,
-    data: { status: string; admin_notes?: string }
-  ): Promise<ServiceResponse<any>> {
-    try {
-      this.logBusinessEvent("moderateReview", { id, status: data.status });
-
-      // Validate moderation data
-      const validation = this.reviewsValidator.validateModerationUpdate(data);
-      if (!validation.isValid) {
-        const serviceError = this.createError(
-          ServiceErrorCode.VALIDATION_ERROR,
-          "Invalid moderation data",
-          validation.errors,
-          "moderateReview"
-        );
-        return this.createResponse(null, serviceError);
-      }
-
-      // Check if review exists
-      const existingResult = await this.repository.findById(id);
-      if (existingResult.error || !existingResult.data) {
-        const serviceError = this.handleRepositoryError(
-          new Error("Review not found"),
-          "moderateReview"
-        );
-        return this.createResponse(null, serviceError);
-      }
-
-      // Update review status
-      const updateData = {
-        ...data,
-        moderated_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const result = await this.repository.update(id, updateData);
-
-      if (result.error) {
-        const serviceError = this.handleRepositoryError(
-          result.error,
-          "moderateReview"
-        );
-        return this.createResponse(null, serviceError);
-      }
-
-      logger.info(`Review ${id} moderated with status: ${data.status}`);
-      return this.createResponse(result.data, null);
-    } catch (error) {
-      logger.error(`Error moderating review ${id}:`, error as Error);
-      const serviceError = this.handleRepositoryError(
-        error as Error,
-        "moderateReview"
-      );
-      return this.createResponse(null, serviceError);
+      const serviceError = this.handleRepositoryError(error, "getByFarmer");
+      return this.createResponse<Review[]>(null, serviceError);
     }
   }
 
   /**
    * Get pending reviews for moderation
    */
-  async getPendingReviews(): Promise<ServiceResponse<any[]>> {
+  async getPendingReviews(): Promise<ServiceResponse<Review[]>> {
     try {
       this.logBusinessEvent("getPendingReviews", {});
 
       const repository = this.repository as ReviewsRepository;
       const reviews = await repository.findPendingReviews();
-      return this.createResponse(reviews, null);
+
+      return this.createResponse<Review[]>(reviews, null);
     } catch (error) {
-      logger.error("Error getting pending reviews:", error as Error);
       const serviceError = this.handleRepositoryError(
-        error as Error,
+        error,
         "getPendingReviews"
       );
-      return this.createResponse<any[]>([], serviceError);
-    }
-  }
-
-  /**
-   * Get average rating for a listing
-   */
-  async getListingRating(
-    listingId: string
-  ): Promise<ServiceResponse<{ average: number; count: number }>> {
-    try {
-      this.logBusinessEvent("getListingRating", { listingId });
-
-      const repository = this.repository as ReviewsRepository;
-      const rating = await repository.getAverageRating(listingId);
-      return this.createResponse(rating, null);
-    } catch (error) {
-      logger.error(
-        `Error getting rating for listing ${listingId}:`,
-        error as Error
-      );
-      const serviceError = this.handleRepositoryError(
-        error as Error,
-        "getListingRating"
-      );
-      return this.createResponse<{ average: number; count: number }>(
-        { average: 0, count: 0 },
-        serviceError
-      );
-    }
-  }
-
-  /**
-   * Analyze review patterns for fraud detection
-   */
-  async analyzeReviewPatterns(
-    listingId: string
-  ): Promise<ServiceResponse<{ suspicious: boolean; details: string[] }>> {
-    try {
-      this.logBusinessEvent("analyzeReviewPatterns", { listingId });
-
-      const repository = this.repository as ReviewsRepository;
-      const reviews = await repository.findByListing(listingId);
-      const ratings = reviews.map((review: any) => review.rating);
-
-      const validation = this.reviewsValidator.validateRatingPattern(ratings);
-
-      return this.createResponse(
-        {
-          suspicious: !validation.isValid,
-          details: validation.errors.map((error) => error.message),
-        },
-        null
-      );
-    } catch (error) {
-      logger.error(
-        `Error analyzing review patterns for listing ${listingId}:`,
-        error as Error
-      );
-      const serviceError = this.handleRepositoryError(
-        error as Error,
-        "analyzeReviewPatterns"
-      );
-      return this.createResponse<{ suspicious: boolean; details: string[] }>(
-        { suspicious: false, details: [] },
-        serviceError
-      );
+      return this.createResponse<Review[]>(null, serviceError);
     }
   }
 }
+
+// Export singleton instance
+export const reviewsService = new ReviewsService();

@@ -2,7 +2,7 @@ import { BUSINESS_RULES, TABLE_NAMES } from "../config";
 import { EnhancedBaseService } from "../database";
 import { logger } from "../logger";
 import { MessagesRepository } from "../repositories/MessagesRepository";
-import { ServiceErrorCode, ServiceResponse } from "../types";
+import { Message, ServiceErrorCode, ServiceResponse } from "../types";
 import { MessagesValidator } from "../validators/MessagesValidator";
 
 interface CreateMessageData {
@@ -20,7 +20,7 @@ interface UpdateMessageData {
   attachment_urls?: string[];
 }
 
-export class MessagesService extends EnhancedBaseService {
+export class MessagesService extends EnhancedBaseService<Message> {
   private messagesValidator: MessagesValidator;
 
   constructor() {

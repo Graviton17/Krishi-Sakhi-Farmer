@@ -1,0 +1,61 @@
+/**
+ * Standardized Validation Error Codes
+ * Industrial-standard error codes for consistent validation across all validators
+ */
+
+export const VALIDATION_ERROR_CODES = {
+  // Required field validation
+  REQUIRED: "REQUIRED",
+
+  // Format validation
+  INVALID_FORMAT: "INVALID_FORMAT",
+  INVALID_TYPE: "INVALID_TYPE",
+  INVALID_VALUE: "INVALID_VALUE",
+
+  // Length validation
+  INVALID_LENGTH: "INVALID_LENGTH",
+  MIN_LENGTH: "MIN_LENGTH",
+  MAX_LENGTH: "MAX_LENGTH",
+
+  // Number validation
+  INVALID_NUMBER: "INVALID_NUMBER",
+  MIN_VALUE: "MIN_VALUE",
+  MAX_VALUE: "MAX_VALUE",
+  INVALID_PRICE: "INVALID_PRICE",
+  INVALID_QUANTITY: "INVALID_QUANTITY",
+
+  // Date validation
+  INVALID_DATE: "INVALID_DATE",
+  INVALID_DATE_RANGE: "INVALID_DATE_RANGE",
+
+  // URL validation
+  INVALID_URL: "INVALID_URL",
+
+  // UUID validation
+  INVALID_UUID: "INVALID_UUID",
+
+  // Address validation
+  INVALID_ADDRESS: "INVALID_ADDRESS",
+
+  // State/status validation
+  INVALID_STATUS: "INVALID_STATUS",
+  INVALID_TRANSITION: "INVALID_TRANSITION",
+
+  // Business rule validation
+  UPDATE_NOT_ALLOWED: "UPDATE_NOT_ALLOWED",
+  DOCUMENTS_REQUIRED: "DOCUMENTS_REQUIRED",
+  TOO_MANY_DOCUMENTS: "TOO_MANY_DOCUMENTS",
+  VALIDITY_TOO_LONG: "VALIDITY_TOO_LONG",
+  VALIDITY_TOO_SHORT: "VALIDITY_TOO_SHORT",
+  NOTES_TOO_LONG: "NOTES_TOO_LONG",
+  INAPPROPRIATE: "INAPPROPRIATE",
+
+  // Dimension validation
+  INVALID_DIMENSIONS: "INVALID_DIMENSIONS",
+
+  // General validation
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+} as const;
+
+export type ValidationErrorCode =
+  (typeof VALIDATION_ERROR_CODES)[keyof typeof VALIDATION_ERROR_CODES];

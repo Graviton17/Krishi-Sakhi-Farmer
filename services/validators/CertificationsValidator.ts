@@ -1,7 +1,8 @@
 import { BUSINESS_RULES } from "../config";
 import { logger } from "../logger";
-import { ValidationError, ValidationResult } from "../types";
+import { Certification, ValidationError, ValidationResult } from "../types";
 import { BaseValidator } from "./BaseValidator";
+import { VALIDATION_ERROR_CODES } from "./ValidationErrorCodes";
 
 export interface CertificationCreateData {
   farmer_id: string;
@@ -24,187 +25,172 @@ export interface CertificationUpdateData {
   verification_notes?: string;
 }
 
-export class CertificationsValidator extends BaseValidator {
-  private static instance: CertificationsValidator;
-
-  public static getInstance(): CertificationsValidator {
-    if (!CertificationsValidator.instance) {
-      CertificationsValidator.instance = new CertificationsValidator();
-    }
-    return CertificationsValidator.instance;
-  }
-
+export class CertificationsValidator extends BaseValidator<Certification> {
   /**
    * Validate certification creation data
    */
-  async validateCreate(
-    data: CertificationCreateData
-  ): Promise<ValidationResult> {
+  validateCreate(data: CertificationCreateData): ValidationResult {
     try {
       const errors: ValidationError[] = [];
 
-      // Validate required fields
-      if (!data.farmer_id?.trim()) {
-        errors.push({
-          field: "farmer_id",
-          message: "Farmer ID is required",
-          code: "REQUIRED",
-        });
-      }
+      // Use BaseValidator methods for common validations
+      this.addUUIDValidation(errors, "farmer_id", data.farmer_id, true);
 
-      if (!data.certification_type?.trim()) {
-        errors.push({
-          field: "certification_type",
-          message: "Certification type is required",
-          code: "REQUIRED",
-        });
-      } else if (!this.isValidCertificationType(data.certification_type)) {
-        errors.push({
-          field: "certification_type",
-          message: `Invalid certification type. Must be one of: ${BUSINESS_RULES.CERTIFICATION.ALLOWED_TYPES.join(
-            ", "
-          )}`,
-          code: "INVALID_TYPE",
-        });
-      }
-
-      if (!data.certificate_number?.trim()) {
-        errors.push({
-          field: "certificate_number",
-          message: "Certificate number is required",
-          code: "REQUIRED",
-        });
-      } else if (!this.isValidCertificateNumber(data.certificate_number)) {
-        errors.push({
-          field: "certificate_number",
-          message:
-            "Certificate number must be alphanumeric and between 5-50 characters",
-          code: "INVALID_FORMAT",
-        });
-      }
-
-      if (!data.issuing_body?.trim()) {
-        errors.push({
-          field: "issuing_body",
-          message: "Issuing body is required",
-          code: "REQUIRED",
-        });
-      } else if (
-        data.issuing_body.length < 2 ||
-        data.issuing_body.length > 100
+      this.addRequiredFieldValidation(
+        errors,
+        "certification_type",
+        data.certification_type
+      );
+      if (
+        data.certification_type &&
+        !this.isValidEnum(data.certification_type, [
+          ...BUSINESS_RULES.CERTIFICATION.ALLOWED_TYPES,
+        ])
       ) {
-        errors.push({
-          field: "issuing_body",
-          message: "Issuing body must be between 2-100 characters",
-          code: "INVALID_LENGTH",
-        });
+        errors.push(
+          this.createError(
+            "certification_type",
+            `Invalid certification type. Must be one of: ${BUSINESS_RULES.CERTIFICATION.ALLOWED_TYPES.join(
+              ", "
+            )}`,
+            VALIDATION_ERROR_CODES.INVALID_TYPE
+          )
+        );
       }
 
-      if (!data.issue_date) {
-        errors.push({
-          field: "issue_date",
-          message: "Issue date is required",
-          code: "REQUIRED",
-        });
-      } else if (!this.isValidDate(data.issue_date)) {
-        errors.push({
-          field: "issue_date",
-          message: "Invalid issue date format",
-          code: "INVALID_FORMAT",
-        });
+      this.addRequiredFieldValidation(
+        errors,
+        "certificate_number",
+        data.certificate_number
+      );
+      if (
+        data.certificate_number &&
+        !this.isValidString(data.certificate_number, 5, 50)
+      ) {
+        errors.push(
+          this.createError(
+            "certificate_number",
+            "Certificate number must be between 5-50 characters",
+            VALIDATION_ERROR_CODES.INVALID_LENGTH
+          )
+        );
       }
 
-      if (!data.expiry_date) {
-        errors.push({
-          field: "expiry_date",
-          message: "Expiry date is required",
-          code: "REQUIRED",
-        });
-      } else if (!this.isValidDate(data.expiry_date)) {
-        errors.push({
-          field: "expiry_date",
-          message: "Invalid expiry date format",
-          code: "INVALID_FORMAT",
-        });
+      this.addRequiredFieldValidation(
+        errors,
+        "issuing_body",
+        data.issuing_body
+      );
+      if (data.issuing_body && !this.isValidString(data.issuing_body, 2, 100)) {
+        errors.push(
+          this.createError(
+            "issuing_body",
+            "Issuing body must be between 2-100 characters",
+            VALIDATION_ERROR_CODES.INVALID_LENGTH
+          )
+        );
       }
 
-      // Validate date logic
-      if (data.issue_date && data.expiry_date) {
-        const issueDate = new Date(data.issue_date);
-        const expiryDate = new Date(data.expiry_date);
+      this.addDateValidation(errors, "issue_date", data.issue_date, true);
+      this.addDateValidation(errors, "expiry_date", data.expiry_date, true);
 
-        if (expiryDate <= issueDate) {
-          errors.push({
-            field: "expiry_date",
-            message: "Expiry date must be after issue date",
-            code: "INVALID_DATE_RANGE",
-          });
+      // Validate date logic using BaseValidator helper
+      if (
+        data.issue_date &&
+        data.expiry_date &&
+        this.isValidDate(data.issue_date) &&
+        this.isValidDate(data.expiry_date)
+      ) {
+        if (!this.isDateAfter(data.expiry_date, data.issue_date)) {
+          errors.push(
+            this.createError(
+              "expiry_date",
+              "Expiry date must be after issue date",
+              VALIDATION_ERROR_CODES.INVALID_DATE_RANGE
+            )
+          );
         }
 
-        // Check if certificate validity period is reasonable
-        const validityMonths = this.getMonthsDifference(issueDate, expiryDate);
+        // Check validity period
+        const validityMonths = this.getMonthsDifference(
+          new Date(data.issue_date),
+          new Date(data.expiry_date)
+        );
         if (
           validityMonths >
           BUSINESS_RULES.CERTIFICATION.MAX_VALIDITY_YEARS * 12
         ) {
-          errors.push({
-            field: "expiry_date",
-            message: `Certificate validity cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_VALIDITY_YEARS} years`,
-            code: "VALIDITY_TOO_LONG",
-          });
+          errors.push(
+            this.createError(
+              "expiry_date",
+              `Certificate validity cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_VALIDITY_YEARS} years`,
+              "VALIDITY_TOO_LONG"
+            )
+          );
         }
 
         if (validityMonths < BUSINESS_RULES.CERTIFICATION.MIN_VALIDITY_MONTHS) {
-          errors.push({
-            field: "expiry_date",
-            message: `Certificate validity must be at least ${BUSINESS_RULES.CERTIFICATION.MIN_VALIDITY_MONTHS} months`,
-            code: "VALIDITY_TOO_SHORT",
-          });
+          errors.push(
+            this.createError(
+              "expiry_date",
+              `Certificate validity must be at least ${BUSINESS_RULES.CERTIFICATION.MIN_VALIDITY_MONTHS} months`,
+              VALIDATION_ERROR_CODES.VALIDITY_TOO_SHORT
+            )
+          );
         }
       }
 
       // Validate document URLs if provided
+      // Validate optional fields using BaseValidator methods
       if (data.document_urls && data.document_urls.length > 0) {
-        const maxDocs = 10; // Default max documents
-        if (data.document_urls.length > maxDocs) {
-          errors.push({
-            field: "document_urls",
-            message: `Maximum ${maxDocs} documents allowed`,
-            code: "TOO_MANY_DOCUMENTS",
-          });
+        const maxDocuments = 10; // Reasonable limit for document uploads
+        if (data.document_urls.length > maxDocuments) {
+          errors.push(
+            this.createError(
+              "document_urls",
+              `Maximum ${maxDocuments} documents allowed`,
+              "TOO_MANY_DOCUMENTS"
+            )
+          );
         }
 
         data.document_urls.forEach((url, index) => {
           if (!this.isValidUrl(url)) {
-            errors.push({
-              field: `document_urls[${index}]`,
-              message: "Invalid document URL",
-              code: "INVALID_URL",
-            });
+            errors.push(
+              this.createError(
+                `document_urls[${index}]`,
+                "Invalid document URL",
+                "INVALID_URL"
+              )
+            );
           }
         });
-      } else {
-        // Check if documents are required for this certification type
-        if (this.requiresDocuments(data.certification_type)) {
-          errors.push({
-            field: "document_urls",
-            message: "Document upload is required for this certification type",
-            code: "DOCUMENTS_REQUIRED",
-          });
-        }
+      } else if (this.requiresDocuments(data.certification_type)) {
+        errors.push(
+          this.createError(
+            "document_urls",
+            "Document upload is required for this certification type",
+            "DOCUMENTS_REQUIRED"
+          )
+        );
       }
 
-      // Validate verification notes if provided
+      // Validate verification notes length
       if (
         data.verification_notes &&
-        data.verification_notes.length >
+        !this.isValidString(
+          data.verification_notes,
+          0,
           BUSINESS_RULES.CERTIFICATION.MAX_NOTES_LENGTH
+        )
       ) {
-        errors.push({
-          field: "verification_notes",
-          message: `Verification notes cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_NOTES_LENGTH} characters`,
-          code: "NOTES_TOO_LONG",
-        });
+        errors.push(
+          this.createError(
+            "verification_notes",
+            `Verification notes cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_NOTES_LENGTH} characters`,
+            "NOTES_TOO_LONG"
+          )
+        );
       }
 
       return {
@@ -216,11 +202,11 @@ export class CertificationsValidator extends BaseValidator {
       return {
         isValid: false,
         errors: [
-          {
-            field: "general",
-            message: "Validation error occurred",
-            code: "VALIDATION_ERROR",
-          },
+          this.createError(
+            "general",
+            "Validation error occurred",
+            "VALIDATION_ERROR"
+          ),
         ],
       };
     }
@@ -229,99 +215,116 @@ export class CertificationsValidator extends BaseValidator {
   /**
    * Validate certification update data
    */
-  async validateCertificationUpdate(
+  validateCertificationUpdate(
     certificationId: string,
     data: CertificationUpdateData,
     currentStatus: string
-  ): Promise<ValidationResult> {
+  ): ValidationResult {
     try {
       const errors: ValidationError[] = [];
 
       // Check if certification can be updated in current status
       if (!this.canUpdateInStatus(currentStatus)) {
-        errors.push({
-          field: "status",
-          message: `Cannot update certification in ${currentStatus} status`,
-          code: "UPDATE_NOT_ALLOWED",
-        });
+        errors.push(
+          this.createError(
+            "status",
+            `Cannot update certification in ${currentStatus} status`,
+            "UPDATE_NOT_ALLOWED"
+          )
+        );
         return { isValid: false, errors };
       }
 
       // Validate certification type if provided
       if (data.certification_type !== undefined) {
         if (!data.certification_type.trim()) {
-          errors.push({
-            field: "certification_type",
-            message: "Certification type cannot be empty",
-            code: "REQUIRED",
-          });
+          errors.push(
+            this.createError(
+              "certification_type",
+              "Certification type cannot be empty",
+              "REQUIRED"
+            )
+          );
         } else if (!this.isValidCertificationType(data.certification_type)) {
-          errors.push({
-            field: "certification_type",
-            message: `Invalid certification type. Must be one of: ${BUSINESS_RULES.CERTIFICATION.ALLOWED_TYPES.join(
-              ", "
-            )}`,
-            code: "INVALID_TYPE",
-          });
+          errors.push(
+            this.createError(
+              "certification_type",
+              `Invalid certification type. Must be one of: ${BUSINESS_RULES.CERTIFICATION.ALLOWED_TYPES.join(
+                ", "
+              )}`,
+              "INVALID_TYPE"
+            )
+          );
         }
       }
 
       // Validate certificate number if provided
       if (data.certificate_number !== undefined) {
         if (!data.certificate_number.trim()) {
-          errors.push({
-            field: "certificate_number",
-            message: "Certificate number cannot be empty",
-            code: "REQUIRED",
-          });
+          errors.push(
+            this.createError(
+              "certificate_number",
+              "Certificate number cannot be empty",
+              "REQUIRED"
+            )
+          );
         } else if (!this.isValidCertificateNumber(data.certificate_number)) {
-          errors.push({
-            field: "certificate_number",
-            message:
+          errors.push(
+            this.createError(
+              "certificate_number",
               "Certificate number must be alphanumeric and between 5-50 characters",
-            code: "INVALID_FORMAT",
-          });
+              "INVALID_FORMAT"
+            )
+          );
         }
       }
 
       // Validate issuing body if provided
       if (data.issuing_body !== undefined) {
         if (!data.issuing_body.trim()) {
-          errors.push({
-            field: "issuing_body",
-            message: "Issuing body cannot be empty",
-            code: "REQUIRED",
-          });
+          errors.push(
+            this.createError(
+              "issuing_body",
+              "Issuing body cannot be empty",
+              "REQUIRED"
+            )
+          );
         } else if (
           data.issuing_body.length < 2 ||
           data.issuing_body.length > 100
         ) {
-          errors.push({
-            field: "issuing_body",
-            message: "Issuing body must be between 2-100 characters",
-            code: "INVALID_LENGTH",
-          });
+          errors.push(
+            this.createError(
+              "issuing_body",
+              "Issuing body must be between 2-100 characters",
+              "INVALID_LENGTH"
+            )
+          );
         }
       }
 
       // Validate dates if provided
       if (data.issue_date !== undefined && !this.isValidDate(data.issue_date)) {
-        errors.push({
-          field: "issue_date",
-          message: "Invalid issue date format",
-          code: "INVALID_FORMAT",
-        });
+        errors.push(
+          this.createError(
+            "issue_date",
+            "Invalid issue date format",
+            "INVALID_FORMAT"
+          )
+        );
       }
 
       if (
         data.expiry_date !== undefined &&
         !this.isValidDate(data.expiry_date)
       ) {
-        errors.push({
-          field: "expiry_date",
-          message: "Invalid expiry date format",
-          code: "INVALID_FORMAT",
-        });
+        errors.push(
+          this.createError(
+            "expiry_date",
+            "Invalid expiry date format",
+            "INVALID_FORMAT"
+          )
+        );
       }
 
       // Validate date logic if both dates are provided or updated
@@ -330,11 +333,13 @@ export class CertificationsValidator extends BaseValidator {
         const expiryDate = new Date(data.expiry_date);
 
         if (expiryDate <= issueDate) {
-          errors.push({
-            field: "expiry_date",
-            message: "Expiry date must be after issue date",
-            code: "INVALID_DATE_RANGE",
-          });
+          errors.push(
+            this.createError(
+              "expiry_date",
+              "Expiry date must be after issue date",
+              "INVALID_DATE_RANGE"
+            )
+          );
         }
 
         const validityMonths = this.getMonthsDifference(issueDate, expiryDate);
@@ -342,11 +347,13 @@ export class CertificationsValidator extends BaseValidator {
           validityMonths >
           BUSINESS_RULES.CERTIFICATION.MAX_VALIDITY_YEARS * 12
         ) {
-          errors.push({
-            field: "expiry_date",
-            message: `Certificate validity cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_VALIDITY_YEARS} years`,
-            code: "VALIDITY_TOO_LONG",
-          });
+          errors.push(
+            this.createError(
+              "expiry_date",
+              `Certificate validity cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_VALIDITY_YEARS} years`,
+              "VALIDITY_TOO_LONG"
+            )
+          );
         }
       }
 
@@ -354,20 +361,24 @@ export class CertificationsValidator extends BaseValidator {
       if (data.document_urls !== undefined) {
         const maxDocs = 10;
         if (data.document_urls.length > maxDocs) {
-          errors.push({
-            field: "document_urls",
-            message: `Maximum ${maxDocs} documents allowed`,
-            code: "TOO_MANY_DOCUMENTS",
-          });
+          errors.push(
+            this.createError(
+              "document_urls",
+              `Maximum ${maxDocs} documents allowed`,
+              "TOO_MANY_DOCUMENTS"
+            )
+          );
         }
 
         data.document_urls.forEach((url, index) => {
           if (!this.isValidUrl(url)) {
-            errors.push({
-              field: `document_urls[${index}]`,
-              message: "Invalid document URL",
-              code: "INVALID_URL",
-            });
+            errors.push(
+              this.createError(
+                `document_urls[${index}]`,
+                "Invalid document URL",
+                "INVALID_URL"
+              )
+            );
           }
         });
       }
@@ -378,11 +389,13 @@ export class CertificationsValidator extends BaseValidator {
         data.verification_notes.length >
           BUSINESS_RULES.CERTIFICATION.MAX_NOTES_LENGTH
       ) {
-        errors.push({
-          field: "verification_notes",
-          message: `Verification notes cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_NOTES_LENGTH} characters`,
-          code: "NOTES_TOO_LONG",
-        });
+        errors.push(
+          this.createError(
+            "verification_notes",
+            `Verification notes cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_NOTES_LENGTH} characters`,
+            "NOTES_TOO_LONG"
+          )
+        );
       }
 
       return {
@@ -394,11 +407,11 @@ export class CertificationsValidator extends BaseValidator {
       return {
         isValid: false,
         errors: [
-          {
-            field: "general",
-            message: "Validation error occurred",
-            code: "VALIDATION_ERROR",
-          },
+          this.createError(
+            "general",
+            "Validation error occurred",
+            "VALIDATION_ERROR"
+          ),
         ],
       };
     }
@@ -407,10 +420,10 @@ export class CertificationsValidator extends BaseValidator {
   /**
    * Validate status transition
    */
-  async validateStatusTransition(
+  validateStatusTransition(
     currentStatus: string,
     newStatus: string
-  ): Promise<ValidationResult> {
+  ): ValidationResult {
     try {
       const errors: ValidationError[] = [];
 
@@ -419,23 +432,27 @@ export class CertificationsValidator extends BaseValidator {
           BUSINESS_RULES.CERTIFICATION.ALLOWED_STATUSES as readonly string[]
         ).includes(newStatus)
       ) {
-        errors.push({
-          field: "status",
-          message: `Invalid status. Must be one of: ${BUSINESS_RULES.CERTIFICATION.ALLOWED_STATUSES.join(
-            ", "
-          )}`,
-          code: "INVALID_STATUS",
-        });
+        errors.push(
+          this.createError(
+            "status",
+            `Invalid status. Must be one of: ${BUSINESS_RULES.CERTIFICATION.ALLOWED_STATUSES.join(
+              ", "
+            )}`,
+            "INVALID_STATUS"
+          )
+        );
       }
 
       // Check valid status transitions
       const validTransitions = this.getValidStatusTransitions(currentStatus);
       if (!validTransitions.includes(newStatus)) {
-        errors.push({
-          field: "status",
-          message: `Invalid status transition from ${currentStatus} to ${newStatus}`,
-          code: "INVALID_TRANSITION",
-        });
+        errors.push(
+          this.createError(
+            "status",
+            `Invalid status transition from ${currentStatus} to ${newStatus}`,
+            "INVALID_TRANSITION"
+          )
+        );
       }
 
       return {
@@ -447,11 +464,11 @@ export class CertificationsValidator extends BaseValidator {
       return {
         isValid: false,
         errors: [
-          {
-            field: "general",
-            message: "Validation error occurred",
-            code: "VALIDATION_ERROR",
-          },
+          this.createError(
+            "general",
+            "Validation error occurred",
+            "VALIDATION_ERROR"
+          ),
         ],
       };
     }
@@ -460,30 +477,34 @@ export class CertificationsValidator extends BaseValidator {
   /**
    * Validate verification data
    */
-  async validateVerification(
+  validateVerification(
     verificationNotes?: string,
     verifiedBy?: string
-  ): Promise<ValidationResult> {
+  ): ValidationResult {
     try {
       const errors: ValidationError[] = [];
 
       if (verifiedBy && verifiedBy.trim().length < 2) {
-        errors.push({
-          field: "verified_by",
-          message: "Verified by must be at least 2 characters",
-          code: "INVALID_LENGTH",
-        });
+        errors.push(
+          this.createError(
+            "verified_by",
+            "Verified by must be at least 2 characters",
+            "INVALID_LENGTH"
+          )
+        );
       }
 
       if (
         verificationNotes &&
         verificationNotes.length > BUSINESS_RULES.CERTIFICATION.MAX_NOTES_LENGTH
       ) {
-        errors.push({
-          field: "verification_notes",
-          message: `Verification notes cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_NOTES_LENGTH} characters`,
-          code: "NOTES_TOO_LONG",
-        });
+        errors.push(
+          this.createError(
+            "verification_notes",
+            `Verification notes cannot exceed ${BUSINESS_RULES.CERTIFICATION.MAX_NOTES_LENGTH} characters`,
+            "NOTES_TOO_LONG"
+          )
+        );
       }
 
       return {
@@ -495,11 +516,11 @@ export class CertificationsValidator extends BaseValidator {
       return {
         isValid: false,
         errors: [
-          {
-            field: "general",
-            message: "Validation error occurred",
-            code: "VALIDATION_ERROR",
-          },
+          this.createError(
+            "general",
+            "Validation error occurred",
+            "VALIDATION_ERROR"
+          ),
         ],
       };
     }
@@ -518,27 +539,6 @@ export class CertificationsValidator extends BaseValidator {
     return regex.test(certificateNumber);
   }
 
-  private isValidDate(dateString: string): boolean {
-    const date = new Date(dateString);
-    return (
-      !isNaN(date.getTime()) && dateString === date.toISOString().split("T")[0]
-    );
-  }
-
-  protected isValidUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private getMonthsDifference(startDate: Date, endDate: Date): number {
-    const months = (endDate.getFullYear() - startDate.getFullYear()) * 12;
-    return months + endDate.getMonth() - startDate.getMonth();
-  }
-
   private requiresDocuments(certificationType: string): boolean {
     // All certification types require documents for verification
     return (
@@ -548,7 +548,7 @@ export class CertificationsValidator extends BaseValidator {
 
   private canUpdateInStatus(status: string): boolean {
     // Can update in pending status, limited updates in other statuses
-    return ["pending", "under_review"].includes(status);
+    return this.isValidEnum(status, ["pending", "under_review"]);
   }
 
   private getValidStatusTransitions(currentStatus: string): string[] {

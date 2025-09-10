@@ -1,7 +1,8 @@
 import { TABLE_NAMES } from "../config";
+import { ProductListing } from "../types";
 import { BaseRepository } from "./BaseRepository";
 
-export class ProductListingRepository extends BaseRepository {
+export class ProductListingRepository extends BaseRepository<ProductListing> {
   constructor() {
     super(TABLE_NAMES.PRODUCT_LISTINGS);
   }

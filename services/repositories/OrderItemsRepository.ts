@@ -1,7 +1,8 @@
 import { TABLE_NAMES } from "../config";
+import { OrderItem } from "../types";
 import { BaseRepository } from "./BaseRepository";
 
-export class OrderItemsRepository extends BaseRepository {
+export class OrderItemsRepository extends BaseRepository<OrderItem> {
   constructor() {
     super(TABLE_NAMES.ORDER_ITEMS);
   }

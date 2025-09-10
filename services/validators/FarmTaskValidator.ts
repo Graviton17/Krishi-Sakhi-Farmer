@@ -1,32 +1,46 @@
 import { VALIDATION_RULES } from "../config";
 import { FarmTask, ValidationError, ValidationResult } from "../types";
 import { BaseValidator } from "./BaseValidator";
+import { VALIDATION_ERROR_CODES } from "./ValidationErrorCodes";
 
 export class FarmTaskValidator extends BaseValidator<FarmTask> {
   private readonly REQUIRED_FIELDS = ["farmer_id", "title"];
+  private readonly VALID_STATUSES = ["pending", "in_progress", "completed"];
 
   validate(data: Partial<FarmTask>): ValidationResult {
     const errors: ValidationError[] = [];
 
-    // Title validation
+    // Farmer ID validation using BaseValidator UUID validation
+    if (data.farmer_id && !this.isValidUUID(data.farmer_id)) {
+      errors.push(
+        this.createError(
+          "farmer_id",
+          "Invalid farmer ID format",
+          VALIDATION_ERROR_CODES.INVALID_UUID
+        )
+      );
+    }
+
+    // Title validation using BaseValidator string validation
     if (
       data.title &&
-      !this.isValidLength(data.title, VALIDATION_RULES.NAME_MAX_LENGTH)
+      !this.isValidString(data.title, 1, VALIDATION_RULES.NAME_MAX_LENGTH)
     ) {
       errors.push(
         this.createError(
           "title",
-          `Task title must be less than ${VALIDATION_RULES.NAME_MAX_LENGTH} characters`,
+          `Task title must be between 1 and ${VALIDATION_RULES.NAME_MAX_LENGTH} characters`,
           "INVALID_LENGTH"
         )
       );
     }
 
-    // Description validation
+    // Description validation using BaseValidator string validation
     if (
       data.description &&
-      !this.isValidLength(
+      !this.isValidString(
         data.description,
+        1,
         VALIDATION_RULES.DESCRIPTION_MAX_LENGTH
       )
     ) {
@@ -39,19 +53,26 @@ export class FarmTaskValidator extends BaseValidator<FarmTask> {
       );
     }
 
-    // Status validation
-    const validStatuses = ["pending", "in_progress", "completed"];
-    if (data.status && !validStatuses.includes(data.status)) {
+    // Status validation using BaseValidator enum validation
+    if (data.status && !this.isValidEnum(data.status, this.VALID_STATUSES)) {
       errors.push(
-        this.createError("status", "Invalid task status", "INVALID_STATUS")
+        this.createError(
+          "status",
+          `Invalid task status. Must be one of: ${this.VALID_STATUSES.join(
+            ", "
+          )}`,
+          "INVALID_STATUS"
+        )
       );
     }
 
-    // Due date validation
+    // Due date validation using BaseValidator date methods
     if (data.due_date) {
-      const dueDate = new Date(data.due_date);
-      const now = new Date();
-      if (dueDate < now) {
+      if (!this.isValidDate(data.due_date)) {
+        errors.push(
+          this.createError("due_date", "Invalid date format", "INVALID_DATE")
+        );
+      } else if (!this.isFutureDate(data.due_date)) {
         errors.push(
           this.createError(
             "due_date",

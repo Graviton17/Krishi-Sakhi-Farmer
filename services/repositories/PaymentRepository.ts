@@ -1,7 +1,8 @@
 import { TABLE_NAMES } from "../config";
+import { Payment } from "../types";
 import { BaseRepository } from "./BaseRepository";
 
-export class PaymentRepository extends BaseRepository {
+export class PaymentRepository extends BaseRepository<Payment> {
   constructor() {
     super(TABLE_NAMES.PAYMENTS);
   }

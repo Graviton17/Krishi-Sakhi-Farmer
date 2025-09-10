@@ -19,7 +19,9 @@ import { ValidatorFactory } from "./validators";
 
 export abstract class EnhancedBaseService<T = any> implements IBaseService<T> {
   protected repository: BaseRepository<T>;
-  protected validator = ValidatorFactory.getValidator<T>(this.getTableName());
+  protected validator = ValidatorFactory.getBaseValidator<T>(
+    this.getTableName()
+  );
   protected entityName: string;
 
   constructor(repository: BaseRepository<T>, entityName: string) {
@@ -116,11 +118,13 @@ export abstract class EnhancedBaseService<T = any> implements IBaseService<T> {
 
     switch (operation) {
       case "create":
-        return this.validator.validate(data);
+        return this.validator?.validate(data) || { isValid: true, errors: [] };
       case "update":
-        return this.validator.validateUpdate(data);
+        return (
+          this.validator?.validateUpdate(data) || { isValid: true, errors: [] }
+        );
       default:
-        return this.validator.validate(data);
+        return this.validator?.validate(data) || { isValid: true, errors: [] };
     }
   }
 

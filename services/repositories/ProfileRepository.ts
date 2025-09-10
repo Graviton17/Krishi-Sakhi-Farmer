@@ -1,7 +1,8 @@
 import { TABLE_NAMES } from "../config";
+import { Profile } from "../types";
 import { BaseRepository } from "./BaseRepository";
 
-export class ProfileRepository extends BaseRepository {
+export class ProfileRepository extends BaseRepository<Profile> {
   constructor() {
     super(TABLE_NAMES.PROFILES);
   }

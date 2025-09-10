@@ -1,6 +1,7 @@
 import { BUSINESS_RULES } from "../config";
 import { OrderItem, ValidationError, ValidationResult } from "../types";
 import { BaseValidator } from "./BaseValidator";
+import { VALIDATION_ERROR_CODES } from "./ValidationErrorCodes";
 
 export class OrderItemsValidator extends BaseValidator<OrderItem> {
   private readonly REQUIRED_FIELDS = [
@@ -13,18 +14,38 @@ export class OrderItemsValidator extends BaseValidator<OrderItem> {
   validate(data: Partial<OrderItem>): ValidationResult {
     const errors: ValidationError[] = [];
 
-    // Quantity validation
+    // UUID validation for ID fields
+    if (data.order_id && !this.isValidUUID(data.order_id)) {
+      errors.push(
+        this.createError(
+          "order_id",
+          "Invalid order ID format",
+          VALIDATION_ERROR_CODES.INVALID_UUID
+        )
+      );
+    }
+
+    if (data.listing_id && !this.isValidUUID(data.listing_id)) {
+      errors.push(
+        this.createError(
+          "listing_id",
+          "Invalid listing ID format",
+          VALIDATION_ERROR_CODES.INVALID_UUID
+        )
+      );
+    }
+
+    // Quantity validation using BaseValidator methods
     if (data.quantity !== undefined) {
-      if (data.quantity <= 0) {
+      if (!this.isPositiveNumber(data.quantity)) {
         errors.push(
           this.createError(
             "quantity",
-            "Quantity must be greater than 0",
+            "Quantity must be a positive number",
             "INVALID_QUANTITY"
           )
         );
-      }
-      if (data.quantity > BUSINESS_RULES.ORDER.MAX_QUANTITY_PER_ITEM) {
+      } else if (data.quantity > BUSINESS_RULES.ORDER.MAX_QUANTITY_PER_ITEM) {
         errors.push(
           this.createError(
             "quantity",
@@ -35,9 +56,9 @@ export class OrderItemsValidator extends BaseValidator<OrderItem> {
       }
     }
 
-    // Price validation
+    // Price validation using BaseValidator methods
     if (data.price_at_purchase !== undefined) {
-      if (data.price_at_purchase <= 0) {
+      if (!this.isPositiveNumber(data.price_at_purchase)) {
         errors.push(
           this.createError(
             "price_at_purchase",

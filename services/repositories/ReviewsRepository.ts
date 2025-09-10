@@ -1,9 +1,10 @@
 import { supabase } from "../../lib/supabase/client";
 import { TABLE_NAMES } from "../config";
 import { logger } from "../logger";
+import { Review } from "../types";
 import { BaseRepository } from "./BaseRepository";
 
-export class ReviewsRepository extends BaseRepository {
+export class ReviewsRepository extends BaseRepository<Review> {
   constructor() {
     super(TABLE_NAMES.REVIEWS);
   }

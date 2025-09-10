@@ -17,7 +17,7 @@ export class CertificationsService extends EnhancedBaseService<Certification> {
   constructor() {
     const repository = new CertificationsRepository("certifications");
     super(repository, "Certification");
-    this.certificationsValidator = CertificationsValidator.getInstance();
+    this.certificationsValidator = new CertificationsValidator();
   }
 
   protected getTableName(): string {

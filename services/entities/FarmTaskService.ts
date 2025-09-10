@@ -77,8 +77,20 @@ export class FarmTaskService
     try {
       this.logBusinessEvent("getByPriority", { priority });
 
-      // Priority field doesn't exist in current schema, return empty array
-      return this.createResponse<FarmTask[]>([], null);
+      // Since the schema doesn't have a priority field, we'll interpret priority
+      // based on due dates: "high" = due soon, "medium" = due within a week, "low" = due later
+      const farmTaskRepository = this.repository as FarmTaskRepository;
+      const result = await farmTaskRepository.findByPriority(priority);
+
+      if (result.error) {
+        const serviceError = this.handleRepositoryError(
+          result.error,
+          "getByPriority"
+        );
+        return this.createResponse<FarmTask[]>(null, serviceError);
+      }
+
+      return this.createResponse<FarmTask[]>(result.data || [], null);
     } catch (error) {
       const serviceError = this.handleRepositoryError(error, "getByPriority");
       return this.createResponse<FarmTask[]>(null, serviceError);

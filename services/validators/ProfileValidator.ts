@@ -4,24 +4,23 @@ import { BaseValidator } from "./BaseValidator";
 
 export class ProfileValidator extends BaseValidator<Profile> {
   private readonly REQUIRED_FIELDS = ["role", "full_name", "contact_email"];
+  private readonly VALID_ROLES = ["farmer", "distributor", "retailer"];
 
   validate(data: Partial<Profile>): ValidationResult {
     const errors: ValidationError[] = [];
 
-    // Email validation
-    if (data.contact_email) {
-      if (!this.isValidEmail(data.contact_email)) {
-        errors.push(
-          this.createError(
-            "contact_email",
-            "Invalid email format",
-            "INVALID_EMAIL"
-          )
-        );
-      }
+    // Email validation using BaseValidator
+    if (data.contact_email && !this.isValidEmail(data.contact_email)) {
+      errors.push(
+        this.createError(
+          "contact_email",
+          "Invalid email format",
+          "INVALID_EMAIL"
+        )
+      );
     }
 
-    // Phone validation
+    // Phone validation using BaseValidator
     if (data.phone_number && !this.isValidPhone(data.phone_number)) {
       errors.push(
         this.createError(
@@ -32,27 +31,28 @@ export class ProfileValidator extends BaseValidator<Profile> {
       );
     }
 
-    // Name length validation
+    // Name validation using BaseValidator string validation
     if (
       data.full_name &&
-      !this.isValidLength(data.full_name, VALIDATION_RULES.NAME_MAX_LENGTH)
+      !this.isValidString(data.full_name, 1, VALIDATION_RULES.NAME_MAX_LENGTH)
     ) {
       errors.push(
         this.createError(
           "full_name",
-          `Name must be less than ${VALIDATION_RULES.NAME_MAX_LENGTH} characters`,
+          `Name must be between 1 and ${VALIDATION_RULES.NAME_MAX_LENGTH} characters`,
           "INVALID_LENGTH"
         )
       );
     }
 
-    // Role validation
-    if (
-      data.role &&
-      !["farmer", "distributor", "retailer"].includes(data.role)
-    ) {
+    // Role validation using BaseValidator enum validation
+    if (data.role && !this.isValidEnum(data.role, this.VALID_ROLES)) {
       errors.push(
-        this.createError("role", "Invalid role specified", "INVALID_ROLE")
+        this.createError(
+          "role",
+          `Invalid role. Must be one of: ${this.VALID_ROLES.join(", ")}`,
+          "INVALID_ROLE"
+        )
       );
     }
 

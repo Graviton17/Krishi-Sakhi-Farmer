@@ -64,7 +64,7 @@ export class DisputesValidator {
   /**
    * Validate data for creating dispute
    */
-  validateCreateDispute(data: CreateDisputeData): void {
+  validateCreate(data: CreateDisputeData): void {
     this.clearErrors();
 
     // Validate required fields
@@ -136,7 +136,7 @@ export class DisputesValidator {
   /**
    * Validate data for updating dispute
    */
-  validateUpdateDispute(data: UpdateDisputeData): void {
+  validateUpdate(data: UpdateDisputeData): void {
     this.clearErrors();
 
     // At least one field must be provided for update

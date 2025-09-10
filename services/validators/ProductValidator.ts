@@ -1,32 +1,44 @@
 import { VALIDATION_RULES } from "../config";
 import { Product, ValidationError, ValidationResult } from "../types";
 import { BaseValidator } from "./BaseValidator";
+import { VALIDATION_ERROR_CODES } from "./ValidationErrorCodes";
 
 export class ProductValidator extends BaseValidator<Product> {
   private readonly REQUIRED_FIELDS = ["name"];
+  private readonly VALID_CATEGORIES = [
+    "grains",
+    "vegetables",
+    "fruits",
+    "dairy",
+    "poultry",
+    "livestock",
+    "spices",
+    "other",
+  ];
 
   validate(data: Partial<Product>): ValidationResult {
     const errors: ValidationError[] = [];
 
-    // Name validation
+    // Name validation using BaseValidator
     if (
       data.name &&
-      !this.isValidLength(data.name, VALIDATION_RULES.NAME_MAX_LENGTH)
+      !this.isValidString(data.name, 1, VALIDATION_RULES.NAME_MAX_LENGTH)
     ) {
       errors.push(
         this.createError(
           "name",
-          `Product name must be less than ${VALIDATION_RULES.NAME_MAX_LENGTH} characters`,
+          `Product name must be between 1 and ${VALIDATION_RULES.NAME_MAX_LENGTH} characters`,
           "INVALID_LENGTH"
         )
       );
     }
 
-    // Description validation
+    // Description validation using BaseValidator
     if (
       data.description &&
-      !this.isValidLength(
+      !this.isValidString(
         data.description,
+        1,
         VALIDATION_RULES.DESCRIPTION_MAX_LENGTH
       )
     ) {
@@ -39,34 +51,31 @@ export class ProductValidator extends BaseValidator<Product> {
       );
     }
 
-    // Image URL validation
+    // Image URL validation using BaseValidator
     if (data.image_url && !this.isValidUrl(data.image_url)) {
       errors.push(
-        this.createError("image_url", "Invalid image URL format", "INVALID_URL")
+        this.createError(
+          "image_url",
+          "Invalid image URL format",
+          VALIDATION_ERROR_CODES.INVALID_URL
+        )
       );
     }
 
-    // Category validation (if provided)
-    if (data.category) {
-      const validCategories = [
-        "grains",
-        "vegetables",
-        "fruits",
-        "dairy",
-        "poultry",
-        "livestock",
-        "spices",
-        "other",
-      ];
-      if (!validCategories.includes(data.category)) {
-        errors.push(
-          this.createError(
-            "category",
-            "Invalid product category",
-            "INVALID_CATEGORY"
-          )
-        );
-      }
+    // Category validation using BaseValidator enum validation
+    if (
+      data.category &&
+      !this.isValidEnum(data.category, this.VALID_CATEGORIES)
+    ) {
+      errors.push(
+        this.createError(
+          "category",
+          `Invalid product category. Must be one of: ${this.VALID_CATEGORIES.join(
+            ", "
+          )}`,
+          "INVALID_CATEGORY"
+        )
+      );
     }
 
     return {

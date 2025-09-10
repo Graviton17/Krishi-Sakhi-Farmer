@@ -44,7 +44,7 @@ export class DisputesService extends EnhancedBaseService<Dispute> {
       });
 
       // Validate input data
-      this.disputesValidator.validateCreateDispute(data);
+      this.disputesValidator.validateCreate(data);
 
       // Business rule: Check if dispute already exists for this order
       const repository = this.repository as DisputesRepository;
@@ -154,7 +154,7 @@ export class DisputesService extends EnhancedBaseService<Dispute> {
       });
 
       // Validate input data
-      this.disputesValidator.validateUpdateDispute(data);
+      this.disputesValidator.validateUpdate(data);
 
       const repository = this.repository as DisputesRepository;
       const existingDispute = await repository.findById(disputeId);

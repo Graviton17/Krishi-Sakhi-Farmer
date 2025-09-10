@@ -47,9 +47,19 @@ export class OrderService
     try {
       this.logBusinessEvent("getBySeller", { sellerId });
 
-      // This would require joining with product_listings to find orders for a seller
-      // For now, return empty array - would need more complex query
-      return this.createResponse<Order[]>([], null);
+      // Use the OrderRepository's enhanced method
+      const orderRepository = this.repository as OrderRepository;
+      const result = await orderRepository.findBySeller(sellerId);
+
+      if (result.error) {
+        const serviceError = this.handleRepositoryError(
+          result.error,
+          "getBySeller"
+        );
+        return this.createResponse<Order[]>(null, serviceError);
+      }
+
+      return this.createResponse<Order[]>(result.data || [], null);
     } catch (error) {
       const serviceError = this.handleRepositoryError(error, "getBySeller");
       return this.createResponse<Order[]>(null, serviceError);

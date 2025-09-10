@@ -1,8 +1,11 @@
 import { BUSINESS_RULES } from "../config";
-import { ValidationResult } from "../types";
+import { Message, ValidationResult } from "../types";
 import { BaseValidator } from "./BaseValidator";
+import { VALIDATION_ERROR_CODES } from "./ValidationErrorCodes";
 
-export class MessagesValidator extends BaseValidator {
+export class MessagesValidator extends BaseValidator<Message> {
+  private readonly VALID_STATUSES = ["sent", "delivered", "read", "deleted"];
+
   /**
    * Validate message creation data
    */
@@ -16,16 +19,32 @@ export class MessagesValidator extends BaseValidator {
   }): ValidationResult {
     const errors: ValidationResult["errors"] = [];
 
-    // Required fields
+    // Required fields with UUID validation
     if (!data.sender_id) {
       errors.push(
         this.createError("sender_id", "Sender ID is required", "REQUIRED")
+      );
+    } else if (!this.isValidUUID(data.sender_id)) {
+      errors.push(
+        this.createError(
+          "sender_id",
+          "Invalid sender ID format",
+          VALIDATION_ERROR_CODES.INVALID_UUID
+        )
       );
     }
 
     if (!data.receiver_id) {
       errors.push(
         this.createError("receiver_id", "Receiver ID is required", "REQUIRED")
+      );
+    } else if (!this.isValidUUID(data.receiver_id)) {
+      errors.push(
+        this.createError(
+          "receiver_id",
+          "Invalid receiver ID format",
+          VALIDATION_ERROR_CODES.INVALID_UUID
+        )
       );
     }
 
@@ -35,30 +54,36 @@ export class MessagesValidator extends BaseValidator {
       );
     }
 
-    // Content validation
+    // Content validation using BaseValidator string validation
     if (data.content) {
-      if (data.content.length < BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH) {
-        errors.push(
-          this.createError(
-            "content",
-            `Message must be at least ${BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH} character long`,
-            "MIN_LENGTH"
-          )
-        );
+      if (
+        !this.isValidString(
+          data.content,
+          BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH,
+          BUSINESS_RULES.MESSAGE.MAX_CONTENT_LENGTH
+        )
+      ) {
+        if (data.content.length < BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH) {
+          errors.push(
+            this.createError(
+              "content",
+              `Message must be at least ${BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH} character long`,
+              "MIN_LENGTH"
+            )
+          );
+        } else {
+          errors.push(
+            this.createError(
+              "content",
+              `Message cannot exceed ${BUSINESS_RULES.MESSAGE.MAX_CONTENT_LENGTH} characters`,
+              "MAX_LENGTH"
+            )
+          );
+        }
       }
 
-      if (data.content.length > BUSINESS_RULES.MESSAGE.MAX_CONTENT_LENGTH) {
-        errors.push(
-          this.createError(
-            "content",
-            `Message cannot exceed ${BUSINESS_RULES.MESSAGE.MAX_CONTENT_LENGTH} characters`,
-            "MAX_LENGTH"
-          )
-        );
-      }
-
-      // Check for spam patterns
-      if (this.containsSpamPatterns(data.content)) {
+      // Use BaseValidator's inappropriate content detection
+      if (this.containsInappropriateContent(data.content)) {
         errors.push(
           this.createError(
             "content",
@@ -84,10 +109,38 @@ export class MessagesValidator extends BaseValidator {
       );
     }
 
-    // Attachment validation
+    // Order ID validation using BaseValidator UUID validation
+    if (data.order_id && !this.isValidUUID(data.order_id)) {
+      errors.push(
+        this.createError(
+          "order_id",
+          "Invalid order ID format",
+          VALIDATION_ERROR_CODES.INVALID_UUID
+        )
+      );
+    }
+
+    // Status validation using BaseValidator enum validation
+    if (data.status && !this.isValidEnum(data.status, this.VALID_STATUSES)) {
+      errors.push(
+        this.createError(
+          "status",
+          `Invalid message status. Must be one of: ${this.VALID_STATUSES.join(
+            ", "
+          )}`,
+          "INVALID_STATUS"
+        )
+      );
+    }
+
+    // Attachment validation using BaseValidator array validation
     if (data.attachment_urls && data.attachment_urls.length > 0) {
       if (
-        data.attachment_urls.length > BUSINESS_RULES.MESSAGE.MAX_ATTACHMENTS
+        !this.isValidArray(
+          data.attachment_urls,
+          0,
+          BUSINESS_RULES.MESSAGE.MAX_ATTACHMENTS
+        )
       ) {
         errors.push(
           this.createError(
@@ -98,35 +151,21 @@ export class MessagesValidator extends BaseValidator {
         );
       }
 
-      // Validate attachment URLs
+      // Validate attachment URLs using BaseValidator URL validation
       data.attachment_urls.forEach((url, index) => {
-        if (!this.isValidMessageUrl(url)) {
+        if (!this.isValidUrl(url)) {
           errors.push(
             this.createError(
               `attachment_urls[${index}]`,
               "Invalid attachment URL",
-              "INVALID"
+              "INVALID_URL"
             )
           );
         }
       });
     }
 
-    // Status validation
-    if (
-      data.status &&
-      !BUSINESS_RULES.MESSAGE.ALLOWED_STATUSES.includes(data.status as any)
-    ) {
-      errors.push(
-        this.createError(
-          "status",
-          `Status must be one of: ${BUSINESS_RULES.MESSAGE.ALLOWED_STATUSES.join(
-            ", "
-          )}`,
-          "INVALID"
-        )
-      );
-    }
+    // Status validation (already handled above with BaseValidator - remove duplicate)
 
     return {
       isValid: errors.length === 0,
@@ -144,30 +183,36 @@ export class MessagesValidator extends BaseValidator {
   }): ValidationResult {
     const errors: ValidationResult["errors"] = [];
 
-    // Content validation (if provided)
+    // Content validation using BaseValidator methods (if provided)
     if (data.content !== undefined) {
-      if (data.content.length < BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH) {
-        errors.push(
-          this.createError(
-            "content",
-            `Message must be at least ${BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH} character long`,
-            "MIN_LENGTH"
-          )
-        );
+      if (
+        !this.isValidString(
+          data.content,
+          BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH,
+          BUSINESS_RULES.MESSAGE.MAX_CONTENT_LENGTH
+        )
+      ) {
+        if (data.content.length < BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH) {
+          errors.push(
+            this.createError(
+              "content",
+              `Message must be at least ${BUSINESS_RULES.MESSAGE.MIN_CONTENT_LENGTH} character long`,
+              "MIN_LENGTH"
+            )
+          );
+        } else {
+          errors.push(
+            this.createError(
+              "content",
+              `Message cannot exceed ${BUSINESS_RULES.MESSAGE.MAX_CONTENT_LENGTH} characters`,
+              "MAX_LENGTH"
+            )
+          );
+        }
       }
 
-      if (data.content.length > BUSINESS_RULES.MESSAGE.MAX_CONTENT_LENGTH) {
-        errors.push(
-          this.createError(
-            "content",
-            `Message cannot exceed ${BUSINESS_RULES.MESSAGE.MAX_CONTENT_LENGTH} characters`,
-            "MAX_LENGTH"
-          )
-        );
-      }
-
-      // Check for spam patterns
-      if (this.containsSpamPatterns(data.content)) {
+      // Use BaseValidator's inappropriate content detection
+      if (this.containsInappropriateContent(data.content)) {
         errors.push(
           this.createError(
             "content",
@@ -178,18 +223,15 @@ export class MessagesValidator extends BaseValidator {
       }
     }
 
-    // Status validation (if provided)
-    if (
-      data.status &&
-      !BUSINESS_RULES.MESSAGE.ALLOWED_STATUSES.includes(data.status as any)
-    ) {
+    // Status validation using BaseValidator enum validation (if provided)
+    if (data.status && !this.isValidEnum(data.status, this.VALID_STATUSES)) {
       errors.push(
         this.createError(
           "status",
-          `Status must be one of: ${BUSINESS_RULES.MESSAGE.ALLOWED_STATUSES.join(
+          `Invalid message status. Must be one of: ${this.VALID_STATUSES.join(
             ", "
           )}`,
-          "INVALID"
+          "INVALID_STATUS"
         )
       );
     }
@@ -208,13 +250,14 @@ export class MessagesValidator extends BaseValidator {
         );
       }
 
+      // Validate attachment URLs using BaseValidator URL validation
       data.attachment_urls.forEach((url, index) => {
-        if (!this.isValidMessageUrl(url)) {
+        if (!this.isValidUrl(url)) {
           errors.push(
             this.createError(
               `attachment_urls[${index}]`,
               "Invalid attachment URL",
-              "INVALID"
+              "INVALID_URL"
             )
           );
         }
@@ -342,37 +385,6 @@ export class MessagesValidator extends BaseValidator {
   /**
    * Check for spam patterns in message content
    */
-  private containsSpamPatterns(content: string): boolean {
-    const spamPatterns = [
-      /(.)\1{10,}/, // Repeated characters (more than 10 times)
-      /\b(click here|buy now|limited time|act now)\b/i,
-      /\b(free money|make money|get rich)\b/i,
-      /\b(viagra|casino|lottery|winner)\b/i,
-      /[A-Z]{20,}/, // Too many consecutive caps
-      /\b\d{10,}\b/, // Long numbers (potential phone/spam)
-      /https?:\/\/[^\s]+/g, // Multiple URLs (count separately)
-    ];
-
-    // Count URL patterns
-    const urlMatches = content.match(/https?:\/\/[^\s]+/g);
-    if (urlMatches && urlMatches.length > 3) {
-      return true; // Too many URLs
-    }
-
-    return spamPatterns.some((pattern) => pattern.test(content));
-  }
-
-  /**
-   * Validate URL format
-   */
-  private isValidMessageUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  }
 
   /**
    * Validate bulk message operations
@@ -407,7 +419,7 @@ export class MessagesValidator extends BaseValidator {
 
     if (
       data.operation &&
-      !["read", "delete", "archive"].includes(data.operation)
+      !this.isValidEnum(data.operation, ["read", "delete", "archive"])
     ) {
       errors.push(
         this.createError(

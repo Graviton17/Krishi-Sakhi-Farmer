@@ -2,7 +2,7 @@ import { BUSINESS_RULES, TABLE_NAMES } from "../config";
 import { EnhancedBaseService } from "../database";
 import { logger } from "../logger";
 import { NegotiationsRepository } from "../repositories/NegotiationsRepository";
-import { ServiceErrorCode, ServiceResponse } from "../types";
+import { Negotiation, ServiceErrorCode, ServiceResponse } from "../types";
 import { NegotiationsValidator } from "../validators/NegotiationsValidator";
 
 interface CreateNegotiationData {
@@ -32,7 +32,7 @@ interface CounterOfferData {
   expires_at?: string;
 }
 
-export class NegotiationsService extends EnhancedBaseService {
+export class NegotiationsService extends EnhancedBaseService<Negotiation> {
   private negotiationsValidator: NegotiationsValidator;
 
   constructor() {

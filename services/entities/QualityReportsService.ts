@@ -18,7 +18,7 @@ export class QualityReportsService extends EnhancedBaseService<QualityReport> {
   constructor() {
     const repository = new QualityReportsRepository("quality_reports");
     super(repository, "QualityReport");
-    this.qualityReportsValidator = QualityReportsValidator.getInstance();
+    this.qualityReportsValidator = new QualityReportsValidator();
   }
 
   protected getTableName(): string {

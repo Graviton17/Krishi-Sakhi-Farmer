@@ -2,7 +2,7 @@ import { BUSINESS_RULES, TABLE_NAMES } from "../config";
 import { EnhancedBaseService } from "../database";
 import { logger } from "../logger";
 import { ShipmentsRepository } from "../repositories/ShipmentsRepository";
-import { ServiceErrorCode, ServiceResponse } from "../types";
+import { ServiceErrorCode, ServiceResponse, Shipment } from "../types";
 import { ShipmentsValidator } from "../validators/ShipmentsValidator";
 
 interface CreateShipmentData {
@@ -35,7 +35,7 @@ interface UpdateShipmentData {
   special_instructions?: string;
 }
 
-export class ShipmentsService extends EnhancedBaseService {
+export class ShipmentsService extends EnhancedBaseService<Shipment> {
   private shipmentsValidator: ShipmentsValidator;
 
   constructor() {
