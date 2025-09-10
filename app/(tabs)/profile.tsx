@@ -1,336 +1,602 @@
-import React from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { ThemedView } from '@/components/ThemedView';
+import React, { useEffect, useState } from 'react';
+import { 
+  StyleSheet, 
+  ScrollView, 
+  RefreshControl, 
+  Alert, 
+  TouchableOpacity, 
+  Modal,
+  TextInput,
+  View,
+  Switch
+} from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
-import SectionCard from '@/components/ui/SectionCard';
-
-// Mock user data - replace with actual user data
-const userData = {
-  name: 'John Farmer',
-  email: 'john@example.com',
-  phone: '+1 (555) 123-4567',
-  certifications: ['Organic', 'Fair Trade', 'Rainforest Alliance'],
-  completionPercentage: 75
-};
+import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useAuth } from '@/lib';
+import { 
+  profileService,
+  Profile,
+  UserRole
+} from '@/lib';
 
 export default function ProfileScreen() {
-  const handleSectionPress = (section) => {
-    // Handle navigation to specific section
-    console.log(`Navigate to ${section}`);
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editProfile, setEditProfile] = useState({
+    full_name: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    farm_size: '',
+    farming_experience: '',
+    bio: '',
+    is_verified: false,
+  });
+
+  const loadProfile = async () => {
+    try {
+      if (!user?.id) return;
+
+      const response = await profileService.getAll({
+        filters: [{ column: 'user_id', operator: 'eq', value: user.id }],
+        pagination: { limit: 1 }
+      });
+
+      if (response.success && response.data && response.data.length > 0) {
+        const profileData = response.data[0];
+        setProfile(profileData);
+        setEditProfile({
+          full_name: profileData.full_name || '',
+          phone: profileData.phone || '',
+          address: profileData.address || '',
+          city: profileData.city || '',
+          state: profileData.state || '',
+          pincode: profileData.pincode || '',
+          farm_size: profileData.farm_size?.toString() || '',
+          farming_experience: profileData.farming_experience?.toString() || '',
+          bio: profileData.bio || '',
+          is_verified: profileData.is_verified || false,
+        });
+      } else {
+        // Create a new profile if none exists
+        const newProfile = {
+          user_id: user.id,
+          full_name: user.email?.split('@')[0] || '',
+          phone: '',
+          address: '',
+          city: '',
+          state: '',
+          pincode: '',
+          farm_size: 0,
+          farming_experience: 0,
+          bio: '',
+          is_verified: false,
+        };
+        setEditProfile(newProfile);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      Alert.alert('Error', 'Failed to load profile');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const renderProgressBar = (percentage) => (
-    <View style={styles.progressContainer}>
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${percentage}%` }]} />
-      </View>
-      <ThemedText style={styles.progressText}>{percentage}% complete</ThemedText>
-    </View>
-  );
+  useEffect(() => {
+    loadProfile();
+  }, [user]);
 
-  const renderCertificationBadge = (cert) => (
-    <View key={cert} style={styles.badge}>
-      <ThemedText style={styles.badgeText}>{cert}</ThemedText>
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadProfile();
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      if (!user?.id) return;
+
+      const profileData = {
+        ...editProfile,
+        user_id: user.id,
+        farm_size: parseFloat(editProfile.farm_size) || 0,
+        farming_experience: parseInt(editProfile.farming_experience) || 0,
+      };
+
+      let response;
+      if (profile) {
+        // Update existing profile
+        response = await profileService.update(profile.id, profileData);
+      } else {
+        // Create new profile
+        response = await profileService.create(profileData);
+      }
+
+      if (response.success) {
+        setShowEditModal(false);
+        loadProfile();
+        Alert.alert('Success', 'Profile updated successfully');
+      } else {
+        Alert.alert('Error', 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Alert.alert('Error', 'Failed to update profile');
+    }
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: signOut
+        }
+      ]
+    );
+  };
+
+  const ProfileField = ({ label, value, icon }: { label: string; value: string; icon: string }) => (
+    <View style={styles.profileField}>
+      <View style={styles.fieldHeader}>
+        <IconSymbol name={icon} size={20} color="#4CAF50" />
+        <ThemedText style={styles.fieldLabel}>{label}</ThemedText>
+      </View>
+      <ThemedText style={styles.fieldValue}>{value || 'Not provided'}</ThemedText>
     </View>
   );
 
   return (
-    <ThemedView style={styles.screen}>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <ThemedText type="title">Profile</ThemedText>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => setShowEditModal(true)}
+        >
+          <IconSymbol name="pencil" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView 
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: '#FFFFFF' }}
+        style={styles.scrollView}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Header with user info */}
-        <ThemedView style={styles.header}>
-          <View style={styles.profileHeader}>
-            <View style={styles.avatar}>
-              <ThemedText style={styles.avatarText}>
-                {userData.name.split(' ').map(n => n[0]).join('')}
-              </ThemedText>
-            </View>
-            <View style={styles.userInfo}>
-              <ThemedText type="title" style={styles.userName}>
-                {userData.name}
-              </ThemedText>
-              <ThemedText style={styles.userEmail}>{userData.email}</ThemedText>
-            </View>
+        {/* Profile Header */}
+        <ThemedView style={styles.profileHeader}>
+          <View style={styles.avatarContainer}>
+            <IconSymbol name="person.fill" size={48} color="#4CAF50" />
           </View>
-          <ThemedText style={styles.subtitle}>
-            Complete your profile to unlock all features
+          <ThemedText style={styles.profileName}>
+            {profile?.full_name || user?.email?.split('@')[0] || 'Farmer'}
           </ThemedText>
-          {renderProgressBar(userData.completionPercentage)}
+          <ThemedText style={styles.profileEmail}>{user?.email}</ThemedText>
+          {profile?.is_verified && (
+            <View style={styles.verifiedBadge}>
+              <IconSymbol name="checkmark.seal.fill" size={16} color="white" />
+              <ThemedText style={styles.verifiedText}>Verified</ThemedText>
+            </View>
+          )}
         </ThemedView>
 
-        {/* Account Section */}
-        <TouchableOpacity 
-          onPress={() => handleSectionPress('account')}
-          activeOpacity={0.7}
-        >
-          <SectionCard title="Account Information" style={styles.interactiveCard}>
-            <View style={styles.cardContent}>
-              <View style={styles.infoRow}>
-                <ThemedText style={styles.label}>Name</ThemedText>
-                <ThemedText style={styles.value}>{userData.name}</ThemedText>
-              </View>
-              <View style={styles.infoRow}>
-                <ThemedText style={styles.label}>Email</ThemedText>
-                <ThemedText style={styles.value}>{userData.email}</ThemedText>
-              </View>
-              <View style={styles.infoRow}>
-                <ThemedText style={styles.label}>Phone</ThemedText>
-                <ThemedText style={styles.value}>{userData.phone}</ThemedText>
-              </View>
-            </View>
-            <ThemedText style={styles.actionText}>Tap to edit →</ThemedText>
-          </SectionCard>
-        </TouchableOpacity>
+        {/* Profile Information */}
+        <ThemedView style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Personal Information</ThemedText>
+          <ProfileField 
+            label="Full Name" 
+            value={profile?.full_name || ''} 
+            icon="person.fill" 
+          />
+          <ProfileField 
+            label="Phone" 
+            value={profile?.phone || ''} 
+            icon="phone.fill" 
+          />
+          <ProfileField 
+            label="Email" 
+            value={user?.email || ''} 
+            icon="envelope.fill" 
+          />
+        </ThemedView>
 
-        {/* Certifications Section */}
-        <TouchableOpacity 
-          onPress={() => handleSectionPress('certifications')}
-          activeOpacity={0.7}
-        >
-          <SectionCard title="Certifications" style={styles.interactiveCard}>
-            <View style={styles.cardContent}>
-              <View style={styles.badgeContainer}>
-                {userData.certifications.map(renderCertificationBadge)}
-              </View>
-              <ThemedText style={styles.description}>
-                {userData.certifications.length} active certification{userData.certifications.length !== 1 ? 's' : ''}
-              </ThemedText>
-            </View>
-            <ThemedText style={styles.actionText}>Manage certifications →</ThemedText>
-          </SectionCard>
-        </TouchableOpacity>
+        <ThemedView style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Location</ThemedText>
+          <ProfileField 
+            label="Address" 
+            value={profile?.address || ''} 
+            icon="location.fill" 
+          />
+          <ProfileField 
+            label="City" 
+            value={profile?.city || ''} 
+            icon="building.2.fill" 
+          />
+          <ProfileField 
+            label="State" 
+            value={profile?.state || ''} 
+            icon="map.fill" 
+          />
+          <ProfileField 
+            label="Pincode" 
+            value={profile?.pincode || ''} 
+            icon="number" 
+          />
+        </ThemedView>
 
-        {/* Preferences Section */}
-        <TouchableOpacity 
-          onPress={() => handleSectionPress('preferences')}
-          activeOpacity={0.7}
-        >
-          <SectionCard title="Preferences" style={styles.interactiveCard}>
-            <View style={styles.cardContent}>
-              <View style={styles.preferenceItem}>
-                <ThemedText style={styles.label}>Language</ThemedText>
-                <ThemedText style={styles.value}>English</ThemedText>
+        <ThemedView style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Farm Information</ThemedText>
+          <ProfileField 
+            label="Farm Size" 
+            value={profile?.farm_size ? `${profile.farm_size} acres` : ''} 
+            icon="leaf.fill" 
+          />
+          <ProfileField 
+            label="Farming Experience" 
+            value={profile?.farming_experience ? `${profile.farming_experience} years` : ''} 
+            icon="calendar" 
+          />
+          {profile?.bio && (
+            <View style={styles.profileField}>
+              <View style={styles.fieldHeader}>
+                <IconSymbol name="text.alignleft" size={20} color="#4CAF50" />
+                <ThemedText style={styles.fieldLabel}>Bio</ThemedText>
               </View>
-              <View style={styles.preferenceItem}>
-                <ThemedText style={styles.label}>Notifications</ThemedText>
-                <ThemedText style={styles.value}>Enabled</ThemedText>
-              </View>
-              <View style={styles.preferenceItem}>
-                <ThemedText style={styles.label}>Theme</ThemedText>
-                <ThemedText style={styles.value}>Auto</ThemedText>
-              </View>
+              <ThemedText style={styles.fieldValue}>{profile.bio}</ThemedText>
             </View>
-            <ThemedText style={styles.actionText}>Customize settings →</ThemedText>
-          </SectionCard>
-        </TouchableOpacity>
+          )}
+        </ThemedView>
 
-        {/* Tips Section */}
-        <SectionCard title="💡 Profile Tips" style={styles.tipsCard}>
-          <View style={styles.tipsList}>
-            <View style={styles.tipItem}>
-              <ThemedText style={styles.tipBullet}>✓</ThemedText>
-              <ThemedText style={styles.tipText}>Keep your profile updated for better matches</ThemedText>
-            </View>
-            <View style={styles.tipItem}>
-              <ThemedText style={styles.tipBullet}>🏆</ThemedText>
-              <ThemedText style={styles.tipText}>Add certifications to unlock premium buyers</ThemedText>
-            </View>
-            <View style={styles.tipItem}>
-              <ThemedText style={styles.tipBullet}>🌐</ThemedText>
-              <ThemedText style={styles.tipText}>Set your preferred languages for support</ThemedText>
-            </View>
-          </View>
-        </SectionCard>
-
-        {/* Security Section */}
-        <SectionCard title="🔒 Security" style={styles.securityCard}>
-          <View style={styles.tipsList}>
-            <View style={styles.tipItem}>
-              <ThemedText style={styles.securityBullet}>🛡️</ThemedText>
-              <ThemedText style={styles.tipText}>Enable 2FA when available</ThemedText>
-            </View>
-            <View style={styles.tipItem}>
-              <ThemedText style={styles.securityBullet}>🔑</ThemedText>
-              <ThemedText style={styles.tipText}>Never share your service role key</ThemedText>
-            </View>
-            <View style={styles.tipItem}>
-              <ThemedText style={styles.securityBullet}>👀</ThemedText>
-              <ThemedText style={styles.tipText}>Review active sessions regularly</ThemedText>
-            </View>
-          </View>
-        </SectionCard>
+        {/* Account Actions */}
+        <ThemedView style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Account</ThemedText>
+          <TouchableOpacity style={styles.actionItem} onPress={handleSignOut}>
+            <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="#F44336" />
+            <ThemedText style={[styles.actionText, { color: '#F44336' }]}>Sign Out</ThemedText>
+            <IconSymbol name="chevron.right" size={16} color="#757575" />
+          </TouchableOpacity>
+        </ThemedView>
       </ScrollView>
-    </ThemedView>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <ThemedView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="subtitle">Edit Profile</ThemedText>
+            <TouchableOpacity onPress={() => setShowEditModal(false)}>
+              <IconSymbol name="xmark" size={24} color="#757575" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>Full Name</ThemedText>
+              <TextInput
+                style={styles.textInput}
+                value={editProfile.full_name}
+                onChangeText={(text) => setEditProfile(prev => ({ ...prev, full_name: text }))}
+                placeholder="Enter your full name"
+                placeholderTextColor="#757575"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>Phone</ThemedText>
+              <TextInput
+                style={styles.textInput}
+                value={editProfile.phone}
+                onChangeText={(text) => setEditProfile(prev => ({ ...prev, phone: text }))}
+                placeholder="Enter your phone number"
+                placeholderTextColor="#757575"
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>Address</ThemedText>
+              <TextInput
+                style={[styles.textInput, styles.textArea]}
+                value={editProfile.address}
+                onChangeText={(text) => setEditProfile(prev => ({ ...prev, address: text }))}
+                placeholder="Enter your address"
+                placeholderTextColor="#757575"
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>City</ThemedText>
+              <TextInput
+                style={styles.textInput}
+                value={editProfile.city}
+                onChangeText={(text) => setEditProfile(prev => ({ ...prev, city: text }))}
+                placeholder="Enter your city"
+                placeholderTextColor="#757575"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>State</ThemedText>
+              <TextInput
+                style={styles.textInput}
+                value={editProfile.state}
+                onChangeText={(text) => setEditProfile(prev => ({ ...prev, state: text }))}
+                placeholder="Enter your state"
+                placeholderTextColor="#757575"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>Pincode</ThemedText>
+              <TextInput
+                style={styles.textInput}
+                value={editProfile.pincode}
+                onChangeText={(text) => setEditProfile(prev => ({ ...prev, pincode: text }))}
+                placeholder="Enter your pincode"
+                placeholderTextColor="#757575"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>Farm Size (acres)</ThemedText>
+              <TextInput
+                style={styles.textInput}
+                value={editProfile.farm_size}
+                onChangeText={(text) => setEditProfile(prev => ({ ...prev, farm_size: text }))}
+                placeholder="Enter farm size in acres"
+                placeholderTextColor="#757575"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>Farming Experience (years)</ThemedText>
+              <TextInput
+                style={styles.textInput}
+                value={editProfile.farming_experience}
+                onChangeText={(text) => setEditProfile(prev => ({ ...prev, farming_experience: text }))}
+                placeholder="Enter years of farming experience"
+                placeholderTextColor="#757575"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>Bio</ThemedText>
+              <TextInput
+                style={[styles.textInput, styles.textArea]}
+                value={editProfile.bio}
+                onChangeText={(text) => setEditProfile(prev => ({ ...prev, bio: text }))}
+                placeholder="Tell us about yourself and your farming practices"
+                placeholderTextColor="#757575"
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.switchContainer}>
+                <ThemedText style={styles.inputLabel}>Verified Farmer</ThemedText>
+                <Switch
+                  value={editProfile.is_verified}
+                  onValueChange={(value) => setEditProfile(prev => ({ ...prev, is_verified: value }))}
+                  trackColor={{ false: '#767577', true: '#4CAF50' }}
+                  thumbColor={editProfile.is_verified ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowEditModal(false)}
+            >
+              <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.saveButton]}
+              onPress={handleSaveProfile}
+            >
+              <ThemedText style={styles.saveButtonText}>Save</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ThemedView>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
-  },
-  content: {
     padding: 16,
-    gap: 16,
-    paddingBottom: 32, // Extra padding for safe area
   },
   header: {
-    gap: 12,
-    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  editButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
   },
   profileHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    paddingVertical: 24,
+    marginBottom: 24,
   },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#007AFF',
-    alignItems: 'center',
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 20,
+  profileName: {
+    fontSize: 24,
     fontWeight: 'bold',
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
     marginBottom: 4,
   },
-  userEmail: {
+  profileEmail: {
     opacity: 0.7,
-    fontSize: 14,
+    marginBottom: 12,
   },
-  subtitle: {
-    opacity: 0.8,
-    fontSize: 16,
-  },
-  progressContainer: {
-    gap: 8,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E5E5E7',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#34C759',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 14,
-    textAlign: 'right',
-    opacity: 0.7,
-  },
-  interactiveCard: {
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  cardContent: {
-    gap: 12,
-  },
-  infoRow: {
+  verifiedBadge: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 2,
-  },
-  preferenceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 2,
-  },
-  label: {
-    opacity: 0.7,
-    fontSize: 14,
-  },
-  value: {
-    fontWeight: '500',
-    flex: 1,
-    textAlign: 'right',
-  },
-  actionText: {
-    marginTop: 8,
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  badgeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  badge: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#4CAF50',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
-  badgeText: {
-    color: '#FFFFFF',
+  verifiedText: {
+    color: 'white',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+    marginLeft: 4,
   },
-  description: {
-    opacity: 0.7,
-    fontSize: 14,
+  section: {
+    marginBottom: 24,
   },
-  tipsCard: {
-    backgroundColor: '#F0F9FF',
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
   },
-  securityCard: {
-    backgroundColor: '#FFF9F0',
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9500',
+  profileField: {
+    marginBottom: 16,
   },
-  tipsList: {
-    gap: 12,
-  },
-  tipItem: {
+  fieldHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  tipBullet: {
+  fieldLabel: {
     fontSize: 16,
-    minWidth: 20,
+    fontWeight: '600',
+    marginLeft: 8,
   },
-  securityBullet: {
-    fontSize: 16,
-    minWidth: 20,
-  },
-  tipText: {
-    flex: 1,
+  fieldValue: {
+    opacity: 0.8,
     lineHeight: 20,
-    color: '#333333',
+  },
+  actionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+  },
+  actionText: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 12,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    opacity: 0.7,
+    textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalContent: {
+    flex: 1,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
 });
