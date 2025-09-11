@@ -17,7 +17,7 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled');
+    CREATE TYPE order_status AS ENUM ('pending', 'processing', 'confirmed', 'shipping', 'shipped', 'delivered', 'cancelled');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -29,7 +29,7 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE payment_status AS ENUM ('succeeded', 'pending', 'failed');
+    CREATE TYPE payment_status AS ENUM ('pending', 'processing', 'succeeded', 'completed', 'failed');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

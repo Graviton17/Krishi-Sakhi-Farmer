@@ -22,6 +22,33 @@ export abstract class BaseRepository<T = any> implements IRepository<T> {
   }
 
   /**
+   * Safely stringify objects that might have circular references
+   */
+  protected safeStringify(obj: any): string {
+    const seen = new Set();
+    try {
+      return JSON.stringify(
+        obj,
+        (key, value) => {
+          if (typeof value === "object" && value !== null) {
+            // Check for circular references
+            if (seen.has(value)) {
+              return "[Circular]";
+            }
+            seen.add(value);
+          }
+          return value;
+        },
+        2
+      );
+    } catch {
+      return String(obj);
+    }
+  }
+
+  private seen = new Set();
+
+  /**
    * Apply filters to a query builder
    */
   protected applyFilters(queryBuilder: any, filters?: FilterOptions[]): any {
@@ -141,7 +168,7 @@ export abstract class BaseRepository<T = any> implements IRepository<T> {
       // Log complete error details
       console.error(
         `Complete error details for ${this.tableName}.${operation}:`,
-        JSON.stringify(errorDetails, null, 2)
+        this.safeStringify(errorDetails)
       );
     }
 
@@ -194,10 +221,14 @@ export abstract class BaseRepository<T = any> implements IRepository<T> {
           fullError: result.error,
         };
 
-        console.error(
-          `Supabase error in ${this.tableName}.findAll:`,
-          JSON.stringify(fullError, null, 2)
-        );
+        console.error(`Supabase error in ${this.tableName}.findAll:`, {
+          message: fullError.message,
+          details: fullError.details,
+          hint: fullError.hint,
+          code: fullError.code,
+          // Safely stringify the error without circular references
+          errorString: this.safeStringify(fullError.fullError),
+        });
         logger.error(
           `Supabase query failed for ${this.tableName}`,
           result.error as any

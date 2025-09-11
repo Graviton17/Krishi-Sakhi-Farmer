@@ -68,18 +68,96 @@ export class FarmTaskValidator extends BaseValidator<FarmTask> {
 
     // Due date validation using BaseValidator date methods
     if (data.due_date) {
-      if (!this.isValidDate(data.due_date)) {
-        errors.push(
-          this.createError("due_date", "Invalid date format", "INVALID_DATE")
-        );
-      } else if (!this.isFutureDate(data.due_date)) {
+      // Try to parse various date formats
+      const dateStr = data.due_date.toString().trim();
+      let parsedDate: Date | null = null;
+
+      // Try different date formats
+      const formats = [
+        /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+        /^\d{2}\/\d{2}\/\d{4}$/, // MM/DD/YYYY
+        /^\d{2},\d{2},\d{4}$/, // MM,DD,YYYY
+        /^\d{2}-\d{2}-\d{4}$/, // MM-DD-YYYY
+      ];
+
+      // Check if format matches any expected pattern
+      const isValidFormat = formats.some((format) => format.test(dateStr));
+
+      if (!isValidFormat) {
         errors.push(
           this.createError(
             "due_date",
-            "Due date cannot be in the past",
-            "INVALID_DATE"
+            "Invalid date format. Please use YYYY-MM-DD, MM/DD/YYYY, or MM-DD-YYYY format",
+            VALIDATION_ERROR_CODES.INVALID_DATE
           )
         );
+      } else {
+        // Try to parse the date
+        if (dateStr.includes(",")) {
+          // Handle MM,DD,YYYY format
+          const parts = dateStr.split(",");
+          if (parts.length === 3) {
+            const [month, day, year] = parts;
+            parsedDate = new Date(
+              parseInt(year),
+              parseInt(month) - 1,
+              parseInt(day)
+            );
+          }
+        } else if (dateStr.includes("/")) {
+          // Handle MM/DD/YYYY format
+          const parts = dateStr.split("/");
+          if (parts.length === 3) {
+            const [month, day, year] = parts;
+            parsedDate = new Date(
+              parseInt(year),
+              parseInt(month) - 1,
+              parseInt(day)
+            );
+          }
+        } else if (dateStr.includes("-")) {
+          // Handle YYYY-MM-DD or MM-DD-YYYY format
+          const parts = dateStr.split("-");
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              // YYYY-MM-DD
+              parsedDate = new Date(dateStr);
+            } else {
+              // MM-DD-YYYY
+              const [month, day, year] = parts;
+              parsedDate = new Date(
+                parseInt(year),
+                parseInt(month) - 1,
+                parseInt(day)
+              );
+            }
+          }
+        }
+
+        if (!parsedDate || isNaN(parsedDate.getTime())) {
+          errors.push(
+            this.createError(
+              "due_date",
+              "Invalid date format",
+              VALIDATION_ERROR_CODES.INVALID_DATE
+            )
+          );
+        } else {
+          // Check if date is in the future (optional - remove this check if past dates should be allowed)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          parsedDate.setHours(0, 0, 0, 0);
+
+          if (parsedDate < today) {
+            errors.push(
+              this.createError(
+                "due_date",
+                "Due date cannot be in the past",
+                VALIDATION_ERROR_CODES.INVALID_DATE
+              )
+            );
+          }
+        }
       }
     }
 

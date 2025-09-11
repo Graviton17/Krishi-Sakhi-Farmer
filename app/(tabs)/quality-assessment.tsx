@@ -1,23 +1,26 @@
 import { QualityAssessmentScreen as QualityAssessmentComponent } from '@/components/farmer/QualityAssessment';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import SectionCard from '@/components/ui/SectionCard';
+import { Card, Container, ScreenContainer, Spacer } from '@/components/ui/Layout';
+import { BodyText, Heading2 } from '@/components/ui/Typography';
 import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export default function QualityAssessmentScreen() {
   const { user } = useAuth();
 
   return (
-    <ThemedView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="title">AI Quality Assessment</ThemedText>
-          <ThemedText>Analyze and grade your produce quality</ThemedText>
-        </ThemedView>
+    <ScreenContainer>
+      <Container style={styles.header}>
+        <Heading2>AI Quality Assessment</Heading2>
+        <BodyText>Analyze and grade your produce quality</BodyText>
+      </Container>
 
-        <SectionCard title="Quality Analysis">
+      <Container style={styles.content}>
+        <Card>
+          <Heading2>Quality Analysis</Heading2>
+          <Spacer size="sm" />
           <QualityAssessmentComponent />
           {!user && (
             <ThemedView style={styles.loginPrompt}>
@@ -29,30 +32,42 @@ export default function QualityAssessmentScreen() {
               <ThemedText style={styles.bulletPoint}>• Track quality trends</ThemedText>
             </ThemedView>
           )}
-        </SectionCard>
+        </Card>
 
-        <SectionCard title="Assessment Features">
-          <ThemedText style={styles.featureText}>• Real-time quality grading (A-F scale)</ThemedText>
-          <ThemedText style={styles.featureText}>• Defect detection and classification</ThemedText>
-          <ThemedText style={styles.featureText}>• Confidence scoring for accuracy</ThemedText>
-          <ThemedText style={styles.featureText}>• Blockchain integration for certificates</ThemedText>
-        </SectionCard>
+        <Spacer size="md" />
 
-        <SectionCard title="How It Works">
-          <ThemedText>1. Capture or upload product images</ThemedText>
-          <ThemedText>2. AI analyzes quality parameters</ThemedText>
-          <ThemedText>3. Receive detailed assessment report</ThemedText>
-          <ThemedText>4. Generate blockchain-verified certificates</ThemedText>
-        </SectionCard>
+        <Card>
+          <Heading2>Assessment Features</Heading2>
+          <Spacer size="sm" />
+          <BodyText style={styles.featureText}>• Real-time quality grading (A-F scale)</BodyText>
+          <BodyText style={styles.featureText}>• Defect detection and classification</BodyText>
+          <BodyText style={styles.featureText}>• Confidence scoring for accuracy</BodyText>
+          <BodyText style={styles.featureText}>• Blockchain integration for certificates</BodyText>
+        </Card>
 
-        <SectionCard title="Benefits">
-          <ThemedText>• Fair pricing based on quality</ThemedText>
-          <ThemedText>• Build buyer trust with certificates</ThemedText>
-          <ThemedText>• Track quality trends over time</ThemedText>
-          <ThemedText>• Meet export standards</ThemedText>
-        </SectionCard>
-      </ScrollView>
-    </ThemedView>
+        <Spacer size="md" />
+
+        <Card>
+          <Heading2>How It Works</Heading2>
+          <Spacer size="sm" />
+          <BodyText>1. Capture or upload product images</BodyText>
+          <BodyText>2. AI analyzes quality parameters</BodyText>
+          <BodyText>3. Receive detailed assessment report</BodyText>
+          <BodyText>4. Generate blockchain-verified certificates</BodyText>
+        </Card>
+
+        <Spacer size="md" />
+
+        <Card>
+          <Heading2>Benefits</Heading2>
+          <Spacer size="sm" />
+          <BodyText>• Fair pricing based on quality</BodyText>
+          <BodyText>• Build buyer trust with certificates</BodyText>
+          <BodyText>• Track quality trends over time</BodyText>
+          <BodyText>• Meet export standards</BodyText>
+        </Card>
+      </Container>
+    </ScreenContainer>
   );
 }
 

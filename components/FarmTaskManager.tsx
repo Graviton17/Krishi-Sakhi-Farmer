@@ -52,11 +52,71 @@ export default function FarmTaskManager() {
     }
 
     try {
+      // Convert date format if provided
+      let formattedDate = null;
+      if (newTask.due_date) {
+        const dateStr = newTask.due_date.trim();
+        let parsedDate: Date | null = null;
+
+        // Try to parse various date formats
+        if (dateStr.includes(",")) {
+          // Handle MM,DD,YYYY format
+          const parts = dateStr.split(",");
+          if (parts.length === 3) {
+            const [month, day, year] = parts.map((p) => p.trim());
+            parsedDate = new Date(
+              parseInt(year),
+              parseInt(month) - 1,
+              parseInt(day)
+            );
+          }
+        } else if (dateStr.includes("/")) {
+          // Handle MM/DD/YYYY format
+          const parts = dateStr.split("/");
+          if (parts.length === 3) {
+            const [month, day, year] = parts.map((p) => p.trim());
+            parsedDate = new Date(
+              parseInt(year),
+              parseInt(month) - 1,
+              parseInt(day)
+            );
+          }
+        } else if (dateStr.includes("-")) {
+          // Handle YYYY-MM-DD or MM-DD-YYYY format
+          const parts = dateStr.split("-");
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              // YYYY-MM-DD - use as is
+              parsedDate = new Date(dateStr);
+            } else {
+              // MM-DD-YYYY
+              const [month, day, year] = parts.map((p) => p.trim());
+              parsedDate = new Date(
+                parseInt(year),
+                parseInt(month) - 1,
+                parseInt(day)
+              );
+            }
+          }
+        }
+
+        // Convert to YYYY-MM-DD format if parsing was successful
+        if (parsedDate && !isNaN(parsedDate.getTime())) {
+          formattedDate = parsedDate.toISOString().split("T")[0];
+        } else {
+          Alert.alert(
+            "Error",
+            "Invalid date format. Please use YYYY-MM-DD, MM/DD/YYYY, or MM-DD-YYYY format"
+          );
+          return;
+        }
+      }
+
       const response = await farmTaskService.create({
         farmer_id: user.id,
         title: newTask.title.trim(),
         description: newTask.description.trim() || null,
-        due_date: newTask.due_date || null,
+        due_date: formattedDate,
         status: "pending" as TaskStatus,
       } as FarmTask);
 
@@ -313,7 +373,7 @@ export default function FarmTaskManager() {
                 </Text>
                 <TextInput
                   className="border border-neutral-300 px-4 py-3 rounded-lg text-base"
-                  placeholder="YYYY-MM-DD"
+                  placeholder="YYYY-MM-DD, MM/DD/YYYY, or MM-DD-YYYY"
                   value={newTask.due_date}
                   onChangeText={(text) =>
                     setNewTask((prev) => ({ ...prev, due_date: text }))

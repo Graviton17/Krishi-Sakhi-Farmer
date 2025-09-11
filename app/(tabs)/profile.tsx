@@ -1,6 +1,21 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import Button from "@/components/ui/Button";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import {
+  Card,
+  Column,
+  Container,
+  Row,
+  ScreenContainer,
+  Spacer,
+} from "@/components/ui/Layout";
+import {
+  BodyText,
+  Caption,
+  Heading2,
+  Heading3,
+} from "@/components/ui/Typography";
 import { Profile, profileService, useAuth } from "@/lib";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -133,28 +148,28 @@ export default function ProfileScreen() {
     value: string;
     icon: string;
   }) => (
-    <View style={styles.profileField}>
-      <View style={styles.fieldHeader}>
+    <Column style={styles.profileField}>
+      <Row style={styles.fieldHeader}>
         <IconSymbol name={icon as any} size={20} color="#4CAF50" />
-        <ThemedText style={styles.fieldLabel}>{label}</ThemedText>
-      </View>
-      <ThemedText style={styles.fieldValue}>
-        {value || "Not provided"}
-      </ThemedText>
-    </View>
+        <BodyText style={styles.fieldLabel}>{label}</BodyText>
+      </Row>
+      <BodyText style={styles.fieldValue}>{value || "Not provided"}</BodyText>
+      <Spacer size="xs" />
+    </Column>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText type="title">Profile</ThemedText>
-        <TouchableOpacity
-          style={styles.editButton}
+    <ScreenContainer>
+      <Container style={styles.header}>
+        <Heading2>Profile</Heading2>
+        <Button
+          variant="primary"
+          size="sm"
           onPress={() => setShowEditModal(true)}
-        >
-          <IconSymbol name="pencil" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
+          icon="pencil"
+          title="Edit"
+        />
+      </Container>
 
       <ScrollView
         style={styles.scrollView}
@@ -163,27 +178,35 @@ export default function ProfileScreen() {
         }
       >
         {/* Profile Header */}
-        <ThemedView style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            <IconSymbol name="person.fill" size={48} color="#4CAF50" />
-          </View>
-          <ThemedText style={styles.profileName}>
-            {profile?.full_name || user?.email?.split("@")[0] || "Farmer"}
-          </ThemedText>
-          <ThemedText style={styles.profileEmail}>{user?.email}</ThemedText>
-          {profile?.is_verified && (
-            <View style={styles.verifiedBadge}>
-              <IconSymbol name="checkmark.seal.fill" size={16} color="white" />
-              <ThemedText style={styles.verifiedText}>Verified</ThemedText>
+        <Card>
+          <Column style={styles.profileHeader}>
+            <View style={styles.avatarContainer}>
+              <IconSymbol name="person.fill" size={48} color="#4CAF50" />
             </View>
-          )}
-        </ThemedView>
+            <Spacer size="sm" />
+            <Heading3 style={styles.profileName}>
+              {profile?.full_name || user?.email?.split("@")[0] || "Farmer"}
+            </Heading3>
+            <BodyText style={styles.profileEmail}>{user?.email}</BodyText>
+            {profile?.is_verified && (
+              <Row style={styles.verifiedBadge}>
+                <IconSymbol
+                  name="checkmark.seal.fill"
+                  size={16}
+                  color="white"
+                />
+                <Caption style={styles.verifiedText}>Verified</Caption>
+              </Row>
+            )}
+          </Column>
+        </Card>
+
+        <Spacer size="md" />
 
         {/* Profile Information */}
-        <ThemedView style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>
-            Personal Information
-          </ThemedText>
+        <Card>
+          <Heading3 style={styles.sectionTitle}>Personal Information</Heading3>
+          <Spacer size="sm" />
           <ProfileField
             label="Full Name"
             value={profile?.full_name || ""}
@@ -204,10 +227,13 @@ export default function ProfileScreen() {
             value={profile?.company_name || ""}
             icon="building.2.fill"
           />
-        </ThemedView>
+        </Card>
 
-        <ThemedView style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Location</ThemedText>
+        <Spacer size="md" />
+
+        <Card>
+          <Heading3 style={styles.sectionTitle}>Location</Heading3>
+          <Spacer size="sm" />
           <ProfileField
             label="Address"
             value={profile?.address || ""}
@@ -223,11 +249,14 @@ export default function ProfileScreen() {
             value={profile?.role || "farmer"}
             icon="person.badge.plus"
           />
-        </ThemedView>
+        </Card>
+
+        <Spacer size="md" />
 
         {/* Account Actions */}
-        <ThemedView style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Account</ThemedText>
+        <Card>
+          <Heading3 style={styles.sectionTitle}>Account</Heading3>
+          <Spacer size="sm" />
           <TouchableOpacity style={styles.actionItem} onPress={handleSignOut}>
             <IconSymbol
               name="rectangle.portrait.and.arrow.right"
@@ -239,7 +268,7 @@ export default function ProfileScreen() {
             </ThemedText>
             <IconSymbol name="chevron.right" size={16} color="#757575" />
           </TouchableOpacity>
-        </ThemedView>
+        </Card>
       </ScrollView>
 
       {/* Edit Profile Modal */}
@@ -373,7 +402,7 @@ export default function ProfileScreen() {
           </View>
         </ThemedView>
       </Modal>
-    </View>
+    </ScreenContainer>
   );
 }
 

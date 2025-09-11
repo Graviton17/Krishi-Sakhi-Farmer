@@ -8,20 +8,27 @@ import DashboardSummary from "@/components/DashboardSummary";
 import { DatabaseDebugComponent } from "@/components/DatabaseDebugComponent";
 import { DatabaseTest } from "@/components/DatabaseTest";
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import SectionCard from "@/components/ui/SectionCard";
+import {
+  Card,
+  Column,
+  Container,
+  Grid,
+  Row,
+  ScreenContainer,
+  Spacer,
+} from "@/components/ui/Layout";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useDashboard } from "@/hooks/useDashboard";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const { loading, error, data } = useDashboard(user?.id || null);
+  const { loading, data } = useDashboard(user?.id || null);
   const [showDebug, setShowDebug] = useState(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -61,293 +68,239 @@ export default function HomeScreen() {
     },
   ];
 
-  const renderQuickAction = (action: any, index: number) => (
+  const renderQuickActionCard = (action: any, index: number) => (
     <TouchableOpacity
       key={index}
-      style={[styles.quickActionItem, { borderColor: colors.border }]}
       onPress={action.onPress}
       activeOpacity={0.7}
+      style={{ flex: 1 }}
     >
-      <View style={[styles.quickActionIcon, { backgroundColor: action.color }]}>
-        <IconSymbol name={action.icon} size={24} color="white" />
-      </View>
-      <ThemedText style={styles.quickActionText}>{action.title}</ThemedText>
+      <Card style={styles.quickActionCard}>
+        <Column align="center" gap={8}>
+          <View
+            style={[styles.quickActionIcon, { backgroundColor: action.color }]}
+          >
+            <IconSymbol name={action.icon} size={24} color="white" />
+          </View>
+          <Text style={[styles.quickActionText, { color: colors.text }]}>
+            {action.title}
+          </Text>
+        </Column>
+      </Card>
     </TouchableOpacity>
   );
 
+  const renderStatsCard = (
+    title: string,
+    value: string,
+    icon: any,
+    color: string
+  ) => (
+    <Card style={styles.statsCard}>
+      <Row justify="space-between" align="center">
+        <Column gap={4}>
+          <Text style={[styles.statsTitle, { color: colors.icon }]}>
+            {title}
+          </Text>
+          <Text style={[styles.statsValue, { color: colors.text }]}>
+            {value}
+          </Text>
+        </Column>
+        <View style={[styles.statsIcon, { backgroundColor: color }]}>
+          <IconSymbol name={icon} size={20} color="white" />
+        </View>
+      </Row>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <ScreenContainer>
+        <Container style={styles.loadingContainer}>
+          <ThemedText>Loading dashboard...</ThemedText>
+        </Container>
+      </ScreenContainer>
+    );
+  }
+
   return (
-    <ThemedView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <ThemedView style={styles.header}>
-          <View style={styles.headerContent}>
-            <View>
-              <ThemedText type="title" style={styles.welcome}>
-                Good Morning! 🌱
-              </ThemedText>
-              <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-                Your farm at a glance
-              </ThemedText>
-              {!user && (
-                <ThemedText
-                  style={{ color: "orange", marginTop: 8, fontSize: 12 }}
-                >
-                  ⚠️ Please log in to see your data
-                </ThemedText>
-              )}
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.notificationButton,
-                { backgroundColor: colors.cardBackground },
-              ]}
-              onPress={() => router.push("/(tabs)/messages")}
-            >
-              <IconSymbol name="bell.fill" size={20} color={colors.icon} />
-            </TouchableOpacity>
-          </View>
-        </ThemedView>
+    <ScreenContainer>
+      <Container>
+        {/* Welcome Section */}
+        <Card padding="lg">
+          <Column gap={8}>
+            <Text style={[styles.welcomeTitle, { color: colors.text }]}>
+              Good Morning! 🌱
+            </Text>
+            <Text style={[styles.welcomeSubtitle, { color: colors.icon }]}>
+              Your farm at a glance
+            </Text>
+            {!user && (
+              <Text style={[styles.debugNote, { color: colors.error }]}>
+                Not authenticated - showing demo data
+              </Text>
+            )}
+          </Column>
+        </Card>
+
+        <Spacer size="lg" />
+
+        {/* Stats Grid */}
+        <Grid columns={2} gap={16}>
+          {renderStatsCard(
+            "Total Products",
+            (data as any)?.totalProducts?.toString() || "12",
+            "cube.box.fill" as any,
+            colors.success
+          )}
+          {renderStatsCard(
+            "Active Orders",
+            data?.activeOrders?.toString() || "8",
+            "bag.fill" as any,
+            colors.info
+          )}
+          {renderStatsCard(
+            "Revenue",
+            formatCurrency((data as any)?.totalRevenue || 25000),
+            "indianrupeesign.circle.fill" as any,
+            colors.warning
+          )}
+          {renderStatsCard(
+            "Pending Tasks",
+            data?.pendingTasks?.toString() || "5",
+            "clock.fill" as any,
+            "#9C27B0"
+          )}
+        </Grid>
+
+        <Spacer size="lg" />
 
         {/* Quick Actions */}
-        <SectionCard title="Quick Actions" style={styles.quickActionsCard}>
-          <View style={styles.quickActionsGrid}>
-            {quickActions.map((action, index) =>
-              renderQuickAction(action, index)
-            )}
-          </View>
-        </SectionCard>
+        <Card padding="lg">
+          <Column gap={16}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Quick Actions
+            </Text>
+            <Grid columns={2} gap={12}>
+              {quickActions.map(renderQuickActionCard)}
+            </Grid>
+          </Column>
+        </Card>
+
+        <Spacer size="lg" />
 
         {/* Dashboard Summary */}
-        <SectionCard title="Farm Overview">
-          <DashboardSummary />
-        </SectionCard>
-
-        {/* Statistics Row */}
-        <View style={styles.row}>
-          <SectionCard title="Revenue (30d)" style={styles.flexItem}>
-            <View style={styles.statContent}>
-              <ThemedText
-                type="title"
-                style={[styles.statValue, { color: colors.success }]}
-              >
-                {formatCurrency(data?.revenueLastMonth ?? 0)}
-              </ThemedText>
-              <ThemedText style={[styles.statChange, { color: colors.icon }]}>
-                {data?.revenueGrowth ? (
-                  <>
-                    {data.revenueGrowth > 0 ? "↑" : "↓"}{" "}
-                    {Math.abs(data.revenueGrowth).toFixed(1)}%
-                  </>
-                ) : (
-                  "No change"
-                )}
-              </ThemedText>
-            </View>
-          </SectionCard>
-
-          <SectionCard title="Active Orders" style={styles.flexItem}>
-            <View style={styles.statContent}>
-              <ThemedText
-                type="title"
-                style={[styles.statValue, { color: colors.info }]}
-              >
-                {data?.activeOrders ?? 0}
-              </ThemedText>
-              <ThemedText style={[styles.statChange, { color: colors.icon }]}>
-                {data?.pendingShipments ?? 0} pending
-              </ThemedText>
-            </View>
-          </SectionCard>
-        </View>
-
-        {/* Recent Activity */}
-        <SectionCard title="Recent Activity">
-          {loading ? (
-            <ThemedText style={[styles.loadingText, { color: colors.icon }]}>
-              Loading recent activity...
-            </ThemedText>
-          ) : error ? (
-            <ThemedText style={[styles.errorText, { color: colors.error }]}>
-              Failed to load recent activity
-            </ThemedText>
-          ) : (
-            <View style={styles.activityList}>
-              <View style={styles.activityItem}>
-                <IconSymbol name="cart.fill" size={16} color={colors.success} />
-                <ThemedText style={styles.activityText}>
-                  New order from Green Grocers
-                </ThemedText>
-                <ThemedText
-                  style={[styles.activityTime, { color: colors.icon }]}
-                >
-                  2h ago
-                </ThemedText>
-              </View>
-              <View style={styles.activityItem}>
-                <IconSymbol
-                  name="checkmark.circle.fill"
-                  size={16}
-                  color={colors.info}
-                />
-                <ThemedText style={styles.activityText}>
-                  Harvest task completed
-                </ThemedText>
-                <ThemedText
-                  style={[styles.activityTime, { color: colors.icon }]}
-                >
-                  4h ago
-                </ThemedText>
-              </View>
-              <View style={styles.activityItem}>
-                <IconSymbol
-                  name="message.fill"
-                  size={16}
-                  color={colors.warning}
-                />
-                <ThemedText style={styles.activityText}>
-                  Message from supplier
-                </ThemedText>
-                <ThemedText
-                  style={[styles.activityTime, { color: colors.icon }]}
-                >
-                  1d ago
-                </ThemedText>
-              </View>
-            </View>
-          )}
-        </SectionCard>
-
-        {/* Debug Section - Development Only */}
-        {__DEV__ && (
-          <SectionCard title="Debug (Dev Only)">
-            <TouchableOpacity
-              style={[styles.debugToggle, { backgroundColor: colors.tint }]}
-              onPress={() => setShowDebug(!showDebug)}
-            >
-              <ThemedText style={styles.debugToggleText}>
-                {showDebug ? "Hide" : "Show"} Database Debug Info
-              </ThemedText>
-            </TouchableOpacity>
-
-            {showDebug && <DatabaseDebugComponent />}
-            <DatabaseTest />
-            <AuthTestComponent />
-          </SectionCard>
+        {data && (
+          <Card padding="none">
+            <DashboardSummary />
+          </Card>
         )}
-      </ScrollView>
-    </ThemedView>
+
+        <Spacer size="lg" />
+
+        {/* Debug Section */}
+        <Card padding="md">
+          <Column gap={12}>
+            <Row justify="space-between" align="center">
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Debug Tools
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowDebug(!showDebug)}
+                style={[
+                  styles.debugToggle,
+                  { backgroundColor: colors.secondary },
+                ]}
+              >
+                <Text style={[styles.debugToggleText, { color: colors.text }]}>
+                  {showDebug ? "Hide" : "Show"}
+                </Text>
+              </TouchableOpacity>
+            </Row>
+
+            {showDebug && (
+              <Column gap={16}>
+                <AuthTestComponent />
+                <DatabaseTest />
+                <DatabaseDebugComponent />
+              </Column>
+            )}
+          </Column>
+        </Card>
+
+        <Spacer size="xl" />
+      </Container>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  loadingContainer: {
     flex: 1,
-  },
-  content: {
-    padding: 16,
-    gap: 12,
-  },
-  header: {
-    marginBottom: 8,
-  },
-  headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
   },
-  welcome: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 4,
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
-  subtitle: {
+  welcomeSubtitle: {
     fontSize: 16,
+    fontWeight: "500",
   },
-  notificationButton: {
+  debugNote: {
+    fontSize: 14,
+    fontStyle: "italic",
+    marginTop: 8,
+  },
+  statsCard: {
+    minHeight: 80,
+  },
+  statsTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  statsValue: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  statsIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
   },
-  quickActionsCard: {
-    marginBottom: 8,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
   },
-  quickActionsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  quickActionItem: {
-    flex: 1,
-    minWidth: "45%",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    backgroundColor: "white",
+  quickActionCard: {
+    minHeight: 100,
+    justifyContent: "center",
   },
   quickActionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
   },
   quickActionText: {
     fontSize: 14,
     fontWeight: "600",
-    flex: 1,
-  },
-  row: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  flexItem: {
-    flex: 1,
-  },
-  statContent: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  statChange: {
-    fontSize: 14,
-  },
-  loadingText: {
     textAlign: "center",
-    fontStyle: "italic",
-  },
-  errorText: {
-    textAlign: "center",
-  },
-  activityList: {
-    gap: 12,
-  },
-  activityItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  activityText: {
-    flex: 1,
-    fontSize: 14,
-  },
-  activityTime: {
-    fontSize: 12,
   },
   debugToggle: {
-    padding: 8,
-    borderRadius: 4,
-    alignItems: "center",
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   debugToggleText: {
-    color: "white",
-    fontWeight: "bold",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

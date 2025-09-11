@@ -1,7 +1,31 @@
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import {
+  Card,
+  Column,
+  Container,
+  Row,
+  ScreenContainer,
+  Spacer,
+} from "@/components/ui/Layout";
+import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/contexts/AuthContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
 import {
   Product,
   ProductListing,
@@ -9,22 +33,11 @@ import {
   ProductListingStatus,
   productService,
 } from "@/lib";
-import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
 
 export default function MarketplaceScreen() {
   const { user } = useAuth();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
   const [listings, setListings] = useState<ProductListing[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -177,152 +190,165 @@ export default function MarketplaceScreen() {
     return filtered;
   };
 
-  const ListingCard = ({ listing }: { listing: ProductListing }) => {
+  const filteredListings = getFilteredListings();
+
+  const renderListingCard = (listing: ProductListing) => {
     const product = products.find((p) => p.id === listing.product_id);
     const isMyListing = listing.farmer_id === user?.id;
 
     return (
-      <ThemedView style={styles.listingCard}>
-        {product?.image_url && (
-          <Image
-            source={{ uri: product.image_url }}
-            style={styles.productImage}
-          />
-        )}
-        <View style={styles.listingContent}>
-          <View style={styles.listingHeader}>
-            <ThemedText style={styles.productName}>
-              {product?.name || "Unknown Product"}
-            </ThemedText>
+      <Card key={listing.id} style={styles.listingCard}>
+        <Column gap={12}>
+          <Row justify="space-between" align="center">
+            <Column gap={4} style={{ flex: 1 }}>
+              <Text style={[styles.productName, { color: colors.text }]}>
+                {getProductName(listing.product_id)}
+              </Text>
+              <Text style={[styles.category, { color: colors.icon }]}>
+                {product?.category || "Category"}
+              </Text>
+            </Column>
             {isMyListing && (
-              <View style={styles.myListingBadge}>
-                <ThemedText style={styles.myListingText}>My Listing</ThemedText>
+              <View
+                style={[
+                  styles.myListingBadge,
+                  { backgroundColor: colors.success },
+                ]}
+              >
+                <Text style={styles.myListingText}>My Listing</Text>
               </View>
             )}
-          </View>
+          </Row>
+
+          <Row justify="space-between" align="center">
+            <Column gap={4}>
+              <Text style={[styles.price, { color: colors.success }]}>
+                ₹{listing.price_per_unit}/{listing.unit_of_measure}
+              </Text>
+              <Text style={[styles.quantity, { color: colors.icon }]}>
+                {listing.quantity_available} {listing.unit_of_measure} available
+              </Text>
+            </Column>
+            <Column align="flex-end" gap={4}>
+              <Text style={[styles.harvestDate, { color: colors.icon }]}>
+                Harvested:{" "}
+                {new Date(listing.harvest_date || "").toLocaleDateString()}
+              </Text>
+              <View
+                style={[styles.statusBadge, { backgroundColor: colors.accent }]}
+              >
+                <Text style={styles.statusText}>{listing.status}</Text>
+              </View>
+            </Column>
+          </Row>
 
           {product?.description && (
-            <ThemedText style={styles.productDescription}>
+            <Text
+              style={[styles.description, { color: colors.text }]}
+              numberOfLines={2}
+            >
               {product.description}
-            </ThemedText>
+            </Text>
           )}
-
-          <View style={styles.listingDetails}>
-            <View style={styles.detailRow}>
-              <IconSymbol name="scalemass.fill" size={16} color="#666" />
-              <ThemedText style={styles.detailText}>
-                {listing.quantity_available} {listing.unit_of_measure}
-              </ThemedText>
-            </View>
-
-            <View style={styles.detailRow}>
-              <IconSymbol
-                name="dollarsign.circle.fill"
-                size={16}
-                color="#4CAF50"
-              />
-              <ThemedText style={styles.priceText}>
-                ₹{listing.price_per_unit}/{listing.unit_of_measure}
-              </ThemedText>
-            </View>
-
-            {listing.harvest_date && (
-              <View style={styles.detailRow}>
-                <IconSymbol name="calendar" size={16} color="#666" />
-                <ThemedText style={styles.detailText}>
-                  Harvested:{" "}
-                  {new Date(listing.harvest_date).toLocaleDateString()}
-                </ThemedText>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.listingFooter}>
-            <ThemedText style={styles.dateText}>
-              Listed: {new Date(listing.created_at).toLocaleDateString()}
-            </ThemedText>
-            {!isMyListing && (
-              <TouchableOpacity style={styles.contactButton}>
-                <ThemedText style={styles.contactButtonText}>
-                  Contact Farmer
-                </ThemedText>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </ThemedView>
+        </Column>
+      </Card>
     );
   };
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <ThemedText style={styles.loadingText}>
-          Loading marketplace...
-        </ThemedText>
-      </View>
+      <ScreenContainer>
+        <Container style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={colors.tint} />
+          <Spacer size="md" />
+          <Text style={[styles.loadingText, { color: colors.icon }]}>
+            Loading marketplace...
+          </Text>
+        </Container>
+      </ScreenContainer>
     );
   }
 
-  const filteredListings = getFilteredListings();
-
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <ThemedView style={styles.header}>
-        <ThemedText type="title">Marketplace</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Fresh produce from local farmers
-        </ThemedText>
-      </ThemedView>
+    <ScreenContainer>
+      <Container>
+        {/* Welcome Section */}
+        <Card padding="lg">
+          <Column gap={8}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Marketplace 🛒
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.icon }]}>
+              Fresh produce from local farmers
+            </Text>
+          </Column>
+        </Card>
 
-      {/* Search Bar */}
-      <ThemedView style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <IconSymbol name="magnifyingglass" size={20} color="#666" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search products..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-      </ThemedView>
+        <Spacer size="md" />
 
-      {/* Listings */}
-      <ScrollView
-        style={styles.listingsContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
+        {/* Search Bar */}
+        <Card padding="md">
+          <Row align="center" gap={12}>
+            <IconSymbol name="magnifyingglass" size={20} color={colors.icon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text, flex: 1 }]}
+              placeholder="Search products..."
+              placeholderTextColor={colors.icon}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </Row>
+        </Card>
+
+        <Spacer size="md" />
+
+        {/* Add Product Button */}
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: colors.tint }]}
+          onPress={() => setShowAddModal(true)}
+          activeOpacity={0.8}
+        >
+          <Row align="center" justify="center" gap={8}>
+            <IconSymbol name="plus.circle.fill" size={20} color="#FFFFFF" />
+            <Text style={styles.addButtonText}>Add Product Listing</Text>
+          </Row>
+        </TouchableOpacity>
+
+        <Spacer size="lg" />
+
+        {/* Listings Grid */}
         {filteredListings.length > 0 ? (
-          filteredListings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
-          ))
+          <ScrollView
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            showsVerticalScrollIndicator={false}
+          >
+            <Column gap={16}>{filteredListings.map(renderListingCard)}</Column>
+            <Spacer size="xl" />
+          </ScrollView>
         ) : (
-          <ThemedView style={styles.emptyState}>
-            <IconSymbol name="storefront" size={64} color="#CCC" />
-            <ThemedText style={styles.emptyStateText}>
-              {searchQuery ? "No products found" : "No listings available"}
-            </ThemedText>
-            <ThemedText style={styles.emptyStateSubtext}>
-              {searchQuery
-                ? "Try adjusting your search terms"
-                : "Be the first to list your products!"}
-            </ThemedText>
-          </ThemedView>
+          <Card padding="lg">
+            <Column align="center" gap={16}>
+              <IconSymbol name="storefront" size={48} color={colors.icon} />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                No listings found
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: colors.icon }]}>
+                {searchQuery
+                  ? "Try adjusting your search terms"
+                  : "Be the first to add a product listing!"}
+              </Text>
+              <TouchableOpacity
+                style={[styles.emptyAction, { backgroundColor: colors.tint }]}
+                onPress={() => setShowAddModal(true)}
+              >
+                <Text style={styles.emptyActionText}>Add Product</Text>
+              </TouchableOpacity>
+            </Column>
+          </Card>
         )}
-      </ScrollView>
-
-      {/* Add Listing FAB */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowAddModal(true)}
-      >
-        <IconSymbol name="plus" size={24} color="white" />
-      </TouchableOpacity>
+      </Container>
 
       {/* Add Listing Modal */}
       <Modal
@@ -455,7 +481,7 @@ export default function MarketplaceScreen() {
           </ScrollView>
         </ThemedView>
       </Modal>
-    </View>
+    </ScreenContainer>
   );
 }
 
@@ -463,6 +489,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingContainer: {
     flex: 1,
@@ -473,13 +504,104 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
   },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  searchInput: {
+    fontSize: 16,
+    paddingVertical: 8,
+  },
+  addButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  addButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  listingCard: {
+    marginBottom: 4,
+  },
+  productName: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  category: {
+    fontSize: 14,
+    fontWeight: "500",
+    textTransform: "capitalize",
+  },
+  myListingBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  myListingText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  price: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  quantity: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  harvestDate: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  statusText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  description: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    textAlign: "center",
+  },
+  emptyAction: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  emptyActionText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   header: {
     padding: 20,
     paddingTop: 60,
-  },
-  subtitle: {
-    marginTop: 4,
-    opacity: 0.7,
   },
   searchContainer: {
     paddingHorizontal: 20,
@@ -497,25 +619,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  searchInput: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-    color: "#333",
-  },
   listingsContainer: {
     flex: 1,
     paddingHorizontal: 20,
-  },
-  listingCard: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    overflow: "hidden",
   },
   productImage: {
     width: "100%",
@@ -530,22 +636,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 8,
-  },
-  productName: {
-    fontSize: 18,
-    fontWeight: "600",
-    flex: 1,
-  },
-  myListingBadge: {
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  myListingText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "500",
   },
   productDescription: {
     fontSize: 14,
