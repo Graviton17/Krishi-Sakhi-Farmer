@@ -3,10 +3,8 @@
  * Main landing screen with farm overview and quick actions
  */
 
-import { AuthTestComponent } from "@/components/AuthTestComponent";
 import DashboardSummary from "@/components/DashboardSummary";
 import { DatabaseDebugComponent } from "@/components/DatabaseDebugComponent";
-import { DatabaseTest } from "@/components/DatabaseTest";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { IconSymbol } from "@/components/ui/IconSymbol";
@@ -39,25 +37,25 @@ export default function HomeScreen() {
       title: "Add Product",
       icon: "plus.circle.fill",
       color: colors.success,
-      onPress: () => router.push("/(tabs)/marketplace"),
+      onPress: () => router.push("/marketplace"),
     },
     {
       title: "View Tasks",
       icon: "checklist",
       color: colors.info,
-      onPress: () => router.push("/(tabs)/tasks"),
+      onPress: () => router.push("/tasks"),
     },
     {
       title: "Messages",
       icon: "message.fill",
       color: colors.warning,
-      onPress: () => router.push("/(tabs)/messages"),
+      onPress: () => router.push("/messages"),
     },
     {
       title: "Quality Check",
       icon: "camera.fill",
       color: "#9C27B0",
-      onPress: () => router.push("/(tabs)/quality-assessment"),
+      onPress: () => router.push("/quality-assessment"),
     },
   ];
 
@@ -87,20 +85,13 @@ export default function HomeScreen() {
               <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
                 Your farm at a glance
               </ThemedText>
-              {!user && (
-                <ThemedText
-                  style={{ color: "orange", marginTop: 8, fontSize: 12 }}
-                >
-                  ⚠️ Please log in to see your data
-                </ThemedText>
-              )}
             </View>
             <TouchableOpacity
               style={[
                 styles.notificationButton,
                 { backgroundColor: colors.cardBackground },
               ]}
-              onPress={() => router.push("/(tabs)/messages")}
+              onPress={() => router.push("/messages")}
             >
               <IconSymbol name="bell.fill" size={20} color={colors.icon} />
             </TouchableOpacity>
@@ -229,8 +220,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             {showDebug && <DatabaseDebugComponent />}
-            <DatabaseTest />
-            <AuthTestComponent />
           </SectionCard>
         )}
       </ScrollView>

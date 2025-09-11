@@ -4,14 +4,53 @@
 -- ===============================================================
 
 -- Create custom ENUM types to ensure data consistency for status fields.
-CREATE TYPE user_role AS ENUM ('farmer', 'distributor', 'retailer');
-CREATE TYPE product_listing_status AS ENUM ('available', 'sold_out', 'delisted');
-CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled');
-CREATE TYPE shipment_status AS ENUM ('in_transit', 'delivered', 'delayed');
-CREATE TYPE payment_status AS ENUM ('succeeded', 'pending', 'failed');
-CREATE TYPE negotiation_status AS ENUM ('pending', 'accepted', 'rejected', 'countered');
-CREATE TYPE dispute_status AS ENUM ('open', 'under_review', 'resolved', 'closed');
-CREATE TYPE task_status AS ENUM ('pending', 'in_progress', 'completed');
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('farmer', 'distributor', 'retailer');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE product_listing_status AS ENUM ('available', 'sold_out', 'delisted');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE shipment_status AS ENUM ('in_transit', 'delivered', 'delayed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE payment_status AS ENUM ('succeeded', 'pending', 'failed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE negotiation_status AS ENUM ('pending', 'accepted', 'rejected', 'countered');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE dispute_status AS ENUM ('open', 'under_review', 'resolved', 'closed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE task_status AS ENUM ('pending', 'in_progress', 'completed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- =================================================================
 -- 1. USERS & PROFILES
@@ -80,6 +119,7 @@ CREATE INDEX idx_product_listings_price ON product_listings(price_per_unit);
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     buyer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE SET NULL,
+    seller_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Reference to the seller/farmer
     status order_status DEFAULT 'pending',
     total_amount NUMERIC(12, 2) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -88,6 +128,7 @@ CREATE TABLE orders (
 
 -- Indexes for orders table
 CREATE INDEX idx_orders_buyer_id ON orders(buyer_id);
+CREATE INDEX idx_orders_seller_id ON orders(seller_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_created_at ON orders(created_at);
 
@@ -106,6 +147,7 @@ CREATE INDEX idx_order_items_listing_id ON order_items(listing_id);
 CREATE TABLE payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    seller_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Reference to the seller receiving payment
     stripe_charge_id TEXT UNIQUE,
     amount NUMERIC(12, 2) NOT NULL,
     status payment_status DEFAULT 'pending',
@@ -114,6 +156,7 @@ CREATE TABLE payments (
 
 -- Indexes for payments table
 CREATE INDEX idx_payments_order_id ON payments(order_id);
+CREATE INDEX idx_payments_seller_id ON payments(seller_id);
 
 -- =================================================================
 -- 4. TRUST & TRANSPARENCY

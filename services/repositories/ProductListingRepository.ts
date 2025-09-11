@@ -8,23 +8,15 @@ export class ProductListingRepository extends BaseRepository<ProductListing> {
   }
 
   async findByFarmer(farmerId: string): Promise<any> {
-    return this.query(
-      `
-        *,
-        products (
-          id,
-          name,
-          description,
-          category,
-          image_url
-        ),
-        quality_reports (
-          ai_score,
-          notes
-        )
-      `,
-      [{ column: "farmer_id", operator: "eq", value: farmerId }]
-    );
+    // Simplified query without joins to test basic functionality
+    try {
+      return this.findWhere([
+        { column: "farmer_id", operator: "eq", value: farmerId },
+      ]);
+    } catch (error) {
+      console.error("Error in findByFarmer:", error);
+      return { data: null, error };
+    }
   }
 
   async findAvailable(): Promise<any> {

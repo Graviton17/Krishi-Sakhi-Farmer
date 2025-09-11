@@ -33,6 +33,7 @@ export interface IAuthService {
   getCurrentSession(): Promise<ServiceResponse<Session>>;
   getCurrentUser(): Promise<ServiceResponse<User>>;
   resetPassword(request: ResetPasswordRequest): Promise<ServiceResponse<void>>;
+  resendConfirmation(email: string): Promise<ServiceResponse<void>>;
   updatePassword(
     request: UpdatePasswordRequest
   ): Promise<ServiceResponse<void>>;
@@ -202,7 +203,7 @@ export class AuthService implements IAuthService {
 
       this.logger.debug("Attempting to sign in with Supabase", {
         emailLength: credentials.email.length,
-        passwordLength: credentials.password.length
+        passwordLength: credentials.password.length,
       });
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -344,6 +345,41 @@ export class AuthService implements IAuthService {
     } catch (error) {
       return this.createErrorResponse(
         this.handleAuthError(error, "reset_password")
+      );
+    }
+  }
+
+  /**
+   * Resend email confirmation
+   */
+  async resendConfirmation(email: string): Promise<ServiceResponse<void>> {
+    try {
+      this.logger.info("Resend confirmation attempt", { email });
+
+      if (!this.validateEmail(email)) {
+        return this.createErrorResponse({
+          code: "VALIDATION_ERROR",
+          message: "Please provide a valid email address",
+          details: { field: "email" },
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email,
+      });
+
+      if (error) {
+        return this.createErrorResponse(
+          this.handleAuthError(error, "resend_confirmation")
+        );
+      }
+
+      return this.createSuccessResponse(undefined, "resend_confirmation");
+    } catch (error) {
+      return this.createErrorResponse(
+        this.handleAuthError(error, "resend_confirmation")
       );
     }
   }

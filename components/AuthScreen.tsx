@@ -1,6 +1,13 @@
 import { useAuth } from "@/contexts/AuthContext";
 import React, { useState } from "react";
-import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function AuthScreen() {
   const { user, signIn, signUp, signOut, loading } = useAuth();
@@ -44,21 +51,15 @@ export default function AuthScreen() {
 
   if (user) {
     return (
-      <View className="flex-1 justify-center px-6 bg-neutral-50">
-        <View className="bg-white rounded-2xl p-8 shadow-card">
-          <Text className="text-3xl font-bold text-center text-neutral-900 mb-2">
-            Welcome! 🌱
-          </Text>
-          <Text className="text-lg text-center text-neutral-600 mb-8">
-            {user.email}
-          </Text>
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.welcomeTitle}>Welcome! 🌱</Text>
+          <Text style={styles.welcomeEmail}>{user.email}</Text>
           <TouchableOpacity
-            className="bg-error-500 py-4 px-6 rounded-xl active:bg-error-600"
+            style={styles.signOutButton}
             onPress={handleSignOut}
           >
-            <Text className="text-white text-lg font-semibold text-center">
-              Sign Out
-            </Text>
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -66,22 +67,20 @@ export default function AuthScreen() {
   }
 
   return (
-    <View className="flex-1 justify-center px-6 bg-primary-50">
-      <View className="bg-white rounded-2xl p-8 shadow-card">
-        <Text className="text-3xl font-bold text-center text-neutral-900 mb-2">
+    <View style={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.title}>
           {isSignUp ? "Join Krishi Sakhi" : "Welcome Back"}
         </Text>
-        <Text className="text-base text-center text-neutral-600 mb-8">
+        <Text style={styles.subtitle}>
           {isSignUp ? "Create your farmer account" : "Sign in to your account"}
         </Text>
 
-        <View className="space-y-4">
-          <View>
-            <Text className="text-sm font-medium text-neutral-700 mb-2">
-              Email
-            </Text>
+        <View style={styles.formContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Email</Text>
             <TextInput
-              className="border border-neutral-300 px-4 py-3 rounded-lg text-base bg-neutral-50 focus:border-primary-500 focus:bg-white"
+              style={styles.textInput}
               placeholder="Enter your email"
               value={email}
               onChangeText={setEmail}
@@ -91,12 +90,10 @@ export default function AuthScreen() {
             />
           </View>
 
-          <View>
-            <Text className="text-sm font-medium text-neutral-700 mb-2">
-              Password
-            </Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Password</Text>
             <TextInput
-              className="border border-neutral-300 px-4 py-3 rounded-lg text-base bg-neutral-50 focus:border-primary-500 focus:bg-white"
+              style={styles.textInput}
               placeholder="Enter your password"
               value={password}
               onChangeText={setPassword}
@@ -107,22 +104,20 @@ export default function AuthScreen() {
         </View>
 
         <TouchableOpacity
-          className={`mt-6 py-4 px-6 rounded-xl ${
-            loading ? "bg-neutral-300" : "bg-primary-500 active:bg-primary-600"
-          }`}
+          style={[styles.authButton, loading && styles.authButtonDisabled]}
           onPress={handleAuth}
           disabled={loading}
         >
-          <Text className="text-white text-lg font-semibold text-center">
+          <Text style={styles.authButtonText}>
             {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          className="mt-6 py-2"
+          style={styles.switchButton}
           onPress={() => setIsSignUp(!isSignUp)}
         >
-          <Text className="text-primary-600 text-center text-base">
+          <Text style={styles.switchButtonText}>
             {isSignUp
               ? "Already have an account? Sign In"
               : "Don't have an account? Sign Up"}
@@ -132,3 +127,104 @@ export default function AuthScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    backgroundColor: "#f9fafb",
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 32,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  welcomeEmail: {
+    fontSize: 18,
+    textAlign: "center",
+    color: "#6b7280",
+    marginBottom: 32,
+  },
+  signOutButton: {
+    backgroundColor: "#ef4444",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  signOutButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#6b7280",
+    marginBottom: 32,
+  },
+  formContainer: {
+    marginBottom: 24,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    fontSize: 16,
+    backgroundColor: "#f9fafb",
+  },
+  authButton: {
+    backgroundColor: "#10b981",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  authButtonDisabled: {
+    backgroundColor: "#d1d5db",
+  },
+  authButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  switchButton: {
+    paddingVertical: 8,
+  },
+  switchButtonText: {
+    color: "#10b981",
+    textAlign: "center",
+    fontSize: 16,
+  },
+});

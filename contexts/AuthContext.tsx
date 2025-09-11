@@ -54,7 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [error, setError] = useState<ServiceError | null>(null);
   const isClient = useIsClient();
 
-  // Initialize session on mount with static user for development
+  // Initialize session on mount
   useEffect(() => {
     let mounted = true;
 
@@ -71,31 +71,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setLoading(true);
         setError(null);
 
-        // Static user for development
-        const staticUser = {
-          id: 'static-user-id-123',
-          email: 'test@example.com',
-          aud: 'authenticated',
-          role: 'authenticated',
-          app_metadata: { provider: 'email', role: 'farmer' },
-          user_metadata: {},
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as User;
-
-        const staticSession = {
-          access_token: 'fake-token',
-          token_type: 'bearer',
-          expires_in: 3600,
-          refresh_token: 'fake-refresh-token',
-          expires_at: Math.floor(Date.now() / 1000) + 3600,
-          user: staticUser,
-        } as Session;
+        // Try to get current session from Supabase
+        const sessionResult = await authService.getCurrentSession();
 
         if (!mounted) return;
 
-        setUser(staticUser);
-        setSession(staticSession);
+        if (sessionResult.success && sessionResult.data) {
+          // We have a valid session
+          setSession(sessionResult.data);
+
+          // Get the user data
+          const userResult = await authService.getCurrentUser();
+          if (userResult.success && userResult.data) {
+            setUser(userResult.data);
+          }
+        } else {
+          // No session found, user needs to sign in
+          setSession(null);
+          setUser(null);
+        }
       } catch (err) {
         if (mounted) {
           const serviceError: ServiceError = {
@@ -178,36 +172,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-    const signIn = async (data: { email: string; password: string }) => {
+  const signIn = async (data: { email: string; password: string }) => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log('AuthContext: Attempting sign in');
+      console.log("AuthContext: Attempting sign in");
       const result = await authService.signIn(data);
 
       if (result.success && result.data) {
-        console.log('AuthContext: Sign in successful, fetching user');
+        console.log("AuthContext: Sign in successful, fetching user");
         setSession(result.data.session);
-        
+
         // Fetch fresh user data after successful sign in
         const userResult = await authService.getCurrentUser();
         if (userResult.success && userResult.data) {
-          console.log('AuthContext: User data fetched successfully:', userResult.data.id);
+          console.log(
+            "AuthContext: User data fetched successfully:",
+            userResult.data.id
+          );
           setUser(userResult.data);
         } else {
-          console.error('AuthContext: Failed to fetch user data:', userResult.error);
+          console.error(
+            "AuthContext: Failed to fetch user data:",
+            userResult.error
+          );
           setError(userResult.error);
           return { data: null, error: userResult.error, success: false };
         }
       } else if (result.error) {
-        console.error('AuthContext: Sign in failed:', result.error);
+        console.error("AuthContext: Sign in failed:", result.error);
         setError(result.error);
       }
 
       return result;
     } catch (err) {
-      console.error('AuthContext: Unexpected error during sign in:', err);
+      console.error("AuthContext: Unexpected error during sign in:", err);
       const serviceError: ServiceError = {
         code: "SIGNIN_ERROR",
         message: "An unexpected error occurred during sign in",
@@ -220,7 +220,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setLoading(false);
     }
-  };  const signOut = async () => {
+  };
+  const signOut = async () => {
     setLoading(true);
     setError(null);
 

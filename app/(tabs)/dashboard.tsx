@@ -1,20 +1,23 @@
-import DashboardSummary from '@/components/DashboardSummary';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import SectionCard from '@/components/ui/SectionCard';
-import { useDashboard } from '@/hooks/useDashboard';
-import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import DashboardSummary from "@/components/DashboardSummary";
+import { DatabaseDebugComponent } from "@/components/DatabaseDebugComponent";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import SectionCard from "@/components/ui/SectionCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDashboard } from "@/hooks/useDashboard";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function DashboardScreen() {
-  // Use the static user ID for now
-  const { loading, error, data } = useDashboard('static-user-id-123');
+  const { user } = useAuth();
+  const { loading, error, data } = useDashboard(user?.id || null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
@@ -32,18 +35,25 @@ export default function DashboardScreen() {
 
         <View style={styles.row}>
           <SectionCard title="Revenue (30d)" style={styles.flexItem}>
-            <ThemedText type="title">{formatCurrency(data?.revenueLastMonth ?? 0)}</ThemedText>
+            <ThemedText type="title">
+              {formatCurrency(data?.revenueLastMonth ?? 0)}
+            </ThemedText>
             <ThemedText>
               {data?.revenueGrowth ? (
                 <>
-                  {data.revenueGrowth > 0 ? '↑' : '↓'} {Math.abs(data.revenueGrowth).toFixed(1)}% vs last month
+                  {data.revenueGrowth > 0 ? "↑" : "↓"}{" "}
+                  {Math.abs(data.revenueGrowth).toFixed(1)}% vs last month
                 </>
-              ) : 'No previous data'}
+              ) : (
+                "No previous data"
+              )}
             </ThemedText>
           </SectionCard>
           <SectionCard title="Orders in Progress" style={styles.flexItem}>
             <ThemedText type="title">{data?.activeOrders ?? 0}</ThemedText>
-            <ThemedText>{data?.pendingShipments ?? 0} pending shipment</ThemedText>
+            <ThemedText>
+              {data?.pendingShipments ?? 0} pending shipment
+            </ThemedText>
           </SectionCard>
         </View>
 
@@ -51,11 +61,13 @@ export default function DashboardScreen() {
           {loading ? (
             <ThemedText>Loading tasks...</ThemedText>
           ) : error ? (
-            <ThemedText style={styles.errorText}>Failed to load tasks</ThemedText>
+            <ThemedText style={styles.errorText}>
+              Failed to load tasks
+            </ThemedText>
           ) : data?.pendingTasks.length === 0 ? (
             <ThemedText>No pending tasks</ThemedText>
           ) : (
-            data?.pendingTasks.map(task => (
+            data?.pendingTasks.map((task) => (
               <ThemedText key={task.id}>• {task.title}</ThemedText>
             ))
           )}
@@ -65,13 +77,16 @@ export default function DashboardScreen() {
           {loading ? (
             <ThemedText>Loading alerts...</ThemedText>
           ) : error ? (
-            <ThemedText style={styles.errorText}>Failed to load inventory alerts</ThemedText>
+            <ThemedText style={styles.errorText}>
+              Failed to load inventory alerts
+            </ThemedText>
           ) : data?.inventoryAlerts.length === 0 ? (
             <ThemedText>No inventory alerts</ThemedText>
           ) : (
-            data?.inventoryAlerts.map(alert => (
+            data?.inventoryAlerts.map((alert) => (
               <ThemedText key={alert.productId}>
-                • Low stock: {alert.productName} ({alert.currentStock} {alert.unit})
+                • Low stock: {alert.productName} ({alert.currentStock}{" "}
+                {alert.unit})
               </ThemedText>
             ))
           )}
@@ -88,11 +103,27 @@ export default function DashboardScreen() {
             <ThemedText>Loading insights...</ThemedText>
           ) : (
             <View>
-              <ThemedText>Revenue Growth: {data?.revenueGrowth.toFixed(1)}%</ThemedText>
+              <ThemedText>
+                Revenue Growth: {data?.revenueGrowth.toFixed(1)}%
+              </ThemedText>
               <ThemedText>Active Orders: {data?.activeOrders}</ThemedText>
               <ThemedText>Tasks Due: {data?.pendingTasks.length}</ThemedText>
             </View>
           )}
+        </SectionCard>
+
+        {/* Debug Section */}
+        <SectionCard title="Debug">
+          <TouchableOpacity
+            style={styles.debugToggle}
+            onPress={() => setShowDebug(!showDebug)}
+          >
+            <ThemedText style={styles.debugToggleText}>
+              {showDebug ? "Hide" : "Show"} Database Debug Info
+            </ThemedText>
+          </TouchableOpacity>
+
+          {showDebug && <DatabaseDebugComponent />}
         </SectionCard>
       </ScrollView>
     </ThemedView>
@@ -112,13 +143,24 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   row: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   flexItem: {
     flex: 1,
   },
   errorText: {
-    color: '#ff4444'
-  }
-}); 
+    color: "#ff4444",
+  },
+  debugToggle: {
+    backgroundColor: "#007bff",
+    padding: 8,
+    borderRadius: 4,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  debugToggleText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+});

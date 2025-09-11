@@ -1,6 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext";
 import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function DashboardSummary() {
   const { user, signOut } = useAuth();
@@ -45,67 +51,49 @@ export default function DashboardSummary() {
   ];
 
   return (
-    <ScrollView className="flex-1 bg-neutral-50">
+    <ScrollView style={styles.container}>
       {/* Header */}
-      <View className="bg-primary-500 pt-16 pb-12 px-6">
-        <View className="flex-row items-center justify-between mb-8">
-          <View className="flex-1 mr-4">
-            <Text className="text-white text-3xl font-bold mb-2">
-              Krishi Sakhi
-            </Text>
-            <Text className="text-primary-100 text-base leading-5">
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerText}>
+            <Text style={styles.headerTitle}>Krishi Sakhi</Text>
+            <Text style={styles.headerSubtitle}>
               Agricultural Marketplace & Farm Management Platform
             </Text>
           </View>
 
-          <TouchableOpacity
-            className="bg-white/20 px-4 py-2.5 rounded-full border border-white/30 active:opacity-80"
-            onPress={signOut}
-          >
-            <Text className="text-white text-sm font-medium">Sign Out</Text>
+          <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
+            <Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* User Info */}
       {user && (
-        <View className="bg-white mx-4 -mt-6 p-6 rounded-2xl shadow-lg border border-neutral-100">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1 mr-4">
-              <Text className="text-xl font-semibold text-neutral-900 mb-2">
-                Welcome back! 👋
-              </Text>
-              <Text className="text-neutral-600 text-base">{user.email}</Text>
+        <View style={styles.userCard}>
+          <View style={styles.userCardContent}>
+            <View style={styles.userInfo}>
+              <Text style={styles.welcomeText}>Welcome back! 👋</Text>
+              <Text style={styles.userEmail}>{user.email}</Text>
             </View>
 
             {/* Role badge - simulated for demo */}
-            <View className="bg-primary-100/80 px-4 py-2 rounded-full border border-primary-200">
-              <Text className="text-primary-700 text-sm font-semibold">
-                🌾 Farmer
-              </Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>🌾 Farmer</Text>
             </View>
           </View>
         </View>
       )}
 
       {/* Platform Features */}
-      <View className="px-4 pt-8 pb-4">
-        <Text className="text-2xl font-bold text-neutral-900 mb-6 px-2">
-          Platform Features
-        </Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Platform Features</Text>
 
-        <View className="space-y-4">
+        <View style={styles.featureList}>
           {featureCards.map((feature, index) => (
-            <TouchableOpacity
-              key={index}
-              className={`${feature.colors} border-2 rounded-2xl p-5 active:opacity-90 shadow-sm`}
-            >
-              <Text
-                className={`text-lg font-semibold mb-2.5 ${feature.textColor}`}
-              >
-                {feature.title}
-              </Text>
-              <Text className="text-neutral-600 leading-5 text-[15px]">
+            <TouchableOpacity key={index} style={styles.featureCard}>
+              <Text style={styles.featureTitle}>{feature.title}</Text>
+              <Text style={styles.featureDescription}>
                 {feature.description}
               </Text>
             </TouchableOpacity>
@@ -114,78 +102,70 @@ export default function DashboardSummary() {
       </View>
 
       {/* Technology Stack */}
-      <View className="px-4 py-6">
-        <Text className="text-2xl font-bold text-neutral-900 mb-6 px-2">
-          Technology Stack
-        </Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Technology Stack</Text>
 
-        <View className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-100">
-          <View className="space-y-5">
-            <View className="flex-row items-center">
-              <View className="w-12 h-12 bg-blue-50 rounded-full items-center justify-center mr-4">
-                <Text className="text-2xl">⚛️</Text>
+        <View style={styles.technologyCard}>
+          <View style={styles.technologyList}>
+            <View style={styles.technologyItem}>
+              <View style={styles.technologyIcon}>
+                <Text style={styles.emoji}>⚛️</Text>
               </View>
               <View>
-                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
-                  React Native + Expo
-                </Text>
-                <Text className="text-[14px] text-neutral-600">
+                <Text style={styles.technologyName}>React Native + Expo</Text>
+                <Text style={styles.technologyDescription}>
                   Cross-platform mobile development
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row items-center">
-              <View className="w-12 h-12 bg-green-50 rounded-full items-center justify-center mr-4">
-                <Text className="text-2xl">🗄️</Text>
+            <View style={styles.technologyItem}>
+              <View style={styles.technologyIcon}>
+                <Text style={styles.emoji}>🗄️</Text>
               </View>
               <View>
-                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
-                  Supabase
-                </Text>
-                <Text className="text-[14px] text-neutral-600">
+                <Text style={styles.technologyName}>Supabase</Text>
+                <Text style={styles.technologyDescription}>
                   PostgreSQL database with real-time features
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row items-center">
-              <View className="w-12 h-12 bg-pink-50 rounded-full items-center justify-center mr-4">
-                <Text className="text-2xl">🎨</Text>
+            <View style={styles.technologyItem}>
+              <View style={styles.technologyIcon}>
+                <Text style={styles.emoji}>🎨</Text>
               </View>
               <View>
-                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
+                <Text style={styles.technologyName}>
                   Tailwind CSS (NativeWind)
                 </Text>
-                <Text className="text-[14px] text-neutral-600">
+                <Text style={styles.technologyDescription}>
                   Utility-first styling framework
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row items-center">
-              <View className="w-12 h-12 bg-purple-50 rounded-full items-center justify-center mr-4">
-                <Text className="text-2xl">🔐</Text>
+            <View style={styles.technologyItem}>
+              <View style={styles.technologyIcon}>
+                <Text style={styles.emoji}>🔐</Text>
               </View>
               <View>
-                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
-                  TypeScript
-                </Text>
-                <Text className="text-[14px] text-neutral-600">
+                <Text style={styles.technologyName}>TypeScript</Text>
+                <Text style={styles.technologyDescription}>
                   Type-safe development experience
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row items-center">
-              <View className="w-12 h-12 bg-orange-50 rounded-full items-center justify-center mr-4">
-                <Text className="text-2xl">🔗</Text>
+            <View style={styles.technologyItem}>
+              <View style={styles.technologyIcon}>
+                <Text style={styles.emoji}>🔗</Text>
               </View>
               <View>
-                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
+                <Text style={styles.technologyName}>
                   Blockchain Integration
                 </Text>
-                <Text className="text-[14px] text-neutral-600">
+                <Text style={styles.technologyDescription}>
                   Transparent transaction tracking
                 </Text>
               </View>
@@ -195,17 +175,15 @@ export default function DashboardSummary() {
       </View>
 
       {/* Database Schema Info */}
-      <View className="px-4 py-6">
-        <Text className="text-2xl font-bold text-neutral-900 mb-6 px-2">
-          Database Schema
-        </Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Database Schema</Text>
 
-        <View className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-100">
-          <Text className="text-neutral-800 text-[16px] font-medium mb-5">
+        <View style={styles.schemaCard}>
+          <Text style={styles.schemaIntro}>
             Complete agricultural marketplace schema with:
           </Text>
 
-          <View className="space-y-3.5">
+          <View style={styles.schemaList}>
             {[
               "👥 User profiles with role-based access",
               "🥕 Product catalog with GTIN support",
@@ -221,10 +199,8 @@ export default function DashboardSummary() {
               "⚖️ Dispute resolution",
               "📋 Farm task management",
             ].map((item, index) => (
-              <View key={index} className="flex-row items-center">
-                <Text className="text-[15px] text-neutral leading-5">
-                  {item}
-                </Text>
+              <View key={index} style={styles.schemaItem}>
+                <Text style={styles.schemaItemText}>{item}</Text>
               </View>
             ))}
           </View>
@@ -232,12 +208,10 @@ export default function DashboardSummary() {
       </View>
 
       {/* Footer */}
-      <View className="px-4 pb-12 pt-4">
-        <View className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl px-6 py-8 items-center shadow-lg">
-          <Text className="text-white text-xl font-semibold mb-3">
-            Ready to Start Building? 🚀
-          </Text>
-          <Text className="text-primary-100 text-center text-[15px] leading-6">
+      <View style={styles.footer}>
+        <View style={styles.footerCard}>
+          <Text style={styles.footerTitle}>Ready to Start Building? 🚀</Text>
+          <Text style={styles.footerText}>
             Your Krishi Sakhi platform is fully configured with Supabase,
             Tailwind CSS, and comprehensive TypeScript types.
           </Text>
@@ -246,3 +220,234 @@ export default function DashboardSummary() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  header: {
+    backgroundColor: "#3b82f6",
+    paddingTop: 64,
+    paddingBottom: 48,
+    paddingHorizontal: 24,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 32,
+  },
+  headerText: {
+    flex: 1,
+    marginRight: 16,
+  },
+  headerTitle: {
+    color: "white",
+    fontSize: 30,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    color: "#dbeafe",
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  signOutButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  signOutText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  userCard: {
+    backgroundColor: "white",
+    marginHorizontal: 16,
+    marginTop: -24,
+    padding: 24,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  userCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  userInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  welcomeText: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  userEmail: {
+    color: "#6b7280",
+    fontSize: 16,
+  },
+  roleBadge: {
+    backgroundColor: "#eff6ff",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  roleBadgeText: {
+    color: "#1d4ed8",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  section: {
+    paddingHorizontal: 16,
+    paddingTop: 32,
+    paddingBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  featureList: {
+    gap: 16,
+  },
+  featureCard: {
+    backgroundColor: "#f3f4f6",
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  featureTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 10,
+    color: "#374151",
+  },
+  featureDescription: {
+    color: "#6b7280",
+    lineHeight: 20,
+    fontSize: 15,
+  },
+  technologyCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  technologyList: {
+    gap: 20,
+  },
+  technologyItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  technologyIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: "#f8fafc",
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  emoji: {
+    fontSize: 24,
+  },
+  technologyName: {
+    fontWeight: "600",
+    color: "#111827",
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  technologyDescription: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  schemaCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  schemaIntro: {
+    color: "#374151",
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 20,
+  },
+  schemaList: {
+    gap: 14,
+  },
+  schemaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  schemaItemText: {
+    fontSize: 15,
+    color: "#374151",
+    lineHeight: 20,
+  },
+  footer: {
+    paddingHorizontal: 16,
+    paddingBottom: 48,
+    paddingTop: 16,
+  },
+  footerCard: {
+    backgroundColor: "#3b82f6",
+    borderRadius: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  footerTitle: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  footerText: {
+    color: "#dbeafe",
+    textAlign: "center",
+    fontSize: 15,
+    lineHeight: 24,
+  },
+});

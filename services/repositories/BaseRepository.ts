@@ -7,11 +7,11 @@ import { supabase } from "../../lib/supabase/client";
 import { ERROR_CODE_MAPPINGS } from "../config";
 import { logger } from "../logger";
 import {
-    FilterOptions,
-    IRepository,
-    QueryOptions,
-    ServiceErrorCode,
-    SortOptions,
+  FilterOptions,
+  IRepository,
+  QueryOptions,
+  ServiceErrorCode,
+  SortOptions,
 } from "../types";
 
 export abstract class BaseRepository<T = any> implements IRepository<T> {
@@ -116,19 +116,50 @@ export abstract class BaseRepository<T = any> implements IRepository<T> {
       ERROR_CODE_MAPPINGS[errorCode as keyof typeof ERROR_CODE_MAPPINGS] ||
       ServiceErrorCode.INTERNAL_ERROR;
 
-    logger.error(`Database ${operation} failed`, error, {
+    // Enhanced error message handling
+    let errorMessage = "An unknown error occurred";
+    let errorDetails = {};
+
+    if (error.message) {
+      errorMessage = error.message;
+    } else if (typeof error === "string") {
+      errorMessage = error;
+    } else if (error.details) {
+      errorMessage = error.details;
+    }
+
+    // Capture all available error information
+    if (typeof error === "object") {
+      errorDetails = {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        fullErrorObject: error,
+      };
+
+      // Log complete error details
+      console.error(
+        `Complete error details for ${this.tableName}.${operation}:`,
+        JSON.stringify(errorDetails, null, 2)
+      );
+    }
+
+    logger.error(`Repository error in ${this.tableName}.${operation}`, error, {
       table: this.tableName,
       errorCode,
       mappedCode,
+      errorDetails,
     });
 
     return {
       data: null,
       error: {
-        message: error.message || 'An unknown error occurred',
-        code: mappedCode
+        message: errorMessage,
+        code: mappedCode,
+        details: errorDetails,
       },
-      count: null
+      count: null,
     };
   }
 
@@ -153,8 +184,33 @@ export abstract class BaseRepository<T = any> implements IRepository<T> {
         success: !result.error,
       });
 
+      if (result.error) {
+        // Detailed error logging to capture complete error information
+        const fullError = {
+          message: result.error.message || "Unknown error",
+          details: result.error.details || "No details available",
+          hint: result.error.hint || "No hint available",
+          code: result.error.code || "UNKNOWN_CODE",
+          fullError: result.error,
+        };
+
+        console.error(
+          `Supabase error in ${this.tableName}.findAll:`,
+          JSON.stringify(fullError, null, 2)
+        );
+        logger.error(
+          `Supabase query failed for ${this.tableName}`,
+          result.error as any
+        );
+        return {
+          data: null,
+          error: fullError,
+        };
+      }
+
       return result;
     } catch (error) {
+      console.error(`Exception in ${this.tableName}.findAll:`, error);
       return this.handleError(error, "findAll");
     }
   }

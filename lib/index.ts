@@ -34,17 +34,45 @@ export type {
 // Services
 export { AuthService } from "../services/auth";
 export { EnhancedBaseService } from "../services/database";
+
+// Import and export all services and service instances
 export {
+  // Service Classes
+  BlockchainTxReferencesService,
+  // Service Instances
+  blockchainTxReferencesService,
+  CertificationsService,
+  certificationsService,
+  ColdChainLogsService,
+  coldChainLogsService,
+  DisputesService,
+  disputesService,
   FarmTaskService,
-  OrderService,
-  ProductListingService,
-  ProductService,
-  ProfileService,
   farmTaskService,
+  MessagesService,
+  messagesService,
+  NegotiationsService,
+  negotiationsService,
+  OrderItemsService,
+  orderItemsService,
+  OrderService,
   orderService,
+  PaymentService,
+  paymentService,
+  ProductListingService,
   productListingService,
+  ProductService,
   productService,
+  ProfileService,
   profileService,
+  QualityReportsService,
+  qualityReportsService,
+  RetailerInventoryService,
+  retailerInventoryService,
+  ReviewsService,
+  reviewsService,
+  ShipmentsService,
+  shipmentsService,
 } from "../services/entities";
 
 // Contexts

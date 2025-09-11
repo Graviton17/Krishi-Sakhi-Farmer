@@ -12,7 +12,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useIsClient } from "@/hooks/useIsClient";
 
-// Note: CSS import temporarily disabled due to bundling issues
+// Note: CSS import removed as we're using React Native StyleSheet instead of Tailwind CSS
 // import "../global.css";
 
 export default function RootLayout() {
