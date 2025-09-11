@@ -47,40 +47,40 @@ export default function DashboardSummary() {
   return (
     <ScrollView className="flex-1 bg-neutral-50">
       {/* Header */}
-      <View className="bg-primary-500 pt-16 pb-8 px-6">
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-white text-2xl font-bold mb-1">
-              Krishi Sakhi Platform
+      <View className="bg-primary-500 pt-16 pb-12 px-6">
+        <View className="flex-row items-center justify-between mb-8">
+          <View className="flex-1 mr-4">
+            <Text className="text-white text-3xl font-bold mb-2">
+              Krishi Sakhi
             </Text>
-            <Text className="text-primary-100 text-base">
-              Agricultural Marketplace & Farm Management
+            <Text className="text-primary-100 text-base leading-5">
+              Agricultural Marketplace & Farm Management Platform
             </Text>
           </View>
 
           <TouchableOpacity
-            className="bg-white/20 p-2 rounded-full"
+            className="bg-white/20 px-4 py-2.5 rounded-full border border-white/30 active:opacity-80"
             onPress={signOut}
           >
-            <Text className="text-white text-sm">Sign Out</Text>
+            <Text className="text-white text-sm font-medium">Sign Out</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* User Info */}
       {user && (
-        <View className="bg-white mx-4 -mt-4 p-6 rounded-xl shadow-card">
+        <View className="bg-white mx-4 -mt-6 p-6 rounded-2xl shadow-lg border border-neutral-100">
           <View className="flex-row items-center justify-between">
-            <View>
-              <Text className="text-lg font-semibold text-neutral-900 mb-1">
+            <View className="flex-1 mr-4">
+              <Text className="text-xl font-semibold text-neutral-900 mb-2">
                 Welcome back! 👋
               </Text>
-              <Text className="text-neutral-600">{user.email}</Text>
+              <Text className="text-neutral-600 text-base">{user.email}</Text>
             </View>
 
             {/* Role badge - simulated for demo */}
-            <View className="bg-primary-100 px-3 py-1 rounded-full">
-              <Text className="text-primary-700 text-sm font-medium">
+            <View className="bg-primary-100/80 px-4 py-2 rounded-full border border-primary-200">
+              <Text className="text-primary-700 text-sm font-semibold">
                 🌾 Farmer
               </Text>
             </View>
@@ -89,8 +89,8 @@ export default function DashboardSummary() {
       )}
 
       {/* Platform Features */}
-      <View className="p-6">
-        <Text className="text-xl font-bold text-neutral-900 mb-4">
+      <View className="px-4 pt-8 pb-4">
+        <Text className="text-2xl font-bold text-neutral-900 mb-6 px-2">
           Platform Features
         </Text>
 
@@ -98,14 +98,14 @@ export default function DashboardSummary() {
           {featureCards.map((feature, index) => (
             <TouchableOpacity
               key={index}
-              className={`${feature.colors} border rounded-xl p-6 active:opacity-80`}
+              className={`${feature.colors} border-2 rounded-2xl p-5 active:opacity-90 shadow-sm`}
             >
               <Text
-                className={`text-lg font-semibold mb-2 ${feature.textColor}`}
+                className={`text-lg font-semibold mb-2.5 ${feature.textColor}`}
               >
                 {feature.title}
               </Text>
-              <Text className="text-neutral-600 leading-5">
+              <Text className="text-neutral-600 leading-5 text-[15px]">
                 {feature.description}
               </Text>
             </TouchableOpacity>
@@ -114,66 +114,78 @@ export default function DashboardSummary() {
       </View>
 
       {/* Technology Stack */}
-      <View className="p-6">
-        <Text className="text-xl font-bold text-neutral-900 mb-4">
+      <View className="px-4 py-6">
+        <Text className="text-2xl font-bold text-neutral-900 mb-6 px-2">
           Technology Stack
         </Text>
 
-        <View className="bg-white rounded-xl p-6 shadow-soft">
-          <View className="space-y-3">
+        <View className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-100">
+          <View className="space-y-5">
             <View className="flex-row items-center">
-              <Text className="text-2xl mr-3">⚛️</Text>
+              <View className="w-12 h-12 bg-blue-50 rounded-full items-center justify-center mr-4">
+                <Text className="text-2xl">⚛️</Text>
+              </View>
               <View>
-                <Text className="font-semibold text-neutral-900">
+                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
                   React Native + Expo
                 </Text>
-                <Text className="text-sm text-neutral-600">
+                <Text className="text-[14px] text-neutral-600">
                   Cross-platform mobile development
                 </Text>
               </View>
             </View>
 
             <View className="flex-row items-center">
-              <Text className="text-2xl mr-3">🗄️</Text>
+              <View className="w-12 h-12 bg-green-50 rounded-full items-center justify-center mr-4">
+                <Text className="text-2xl">🗄️</Text>
+              </View>
               <View>
-                <Text className="font-semibold text-neutral-900">Supabase</Text>
-                <Text className="text-sm text-neutral-600">
+                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
+                  Supabase
+                </Text>
+                <Text className="text-[14px] text-neutral-600">
                   PostgreSQL database with real-time features
                 </Text>
               </View>
             </View>
 
             <View className="flex-row items-center">
-              <Text className="text-2xl mr-3">🎨</Text>
+              <View className="w-12 h-12 bg-pink-50 rounded-full items-center justify-center mr-4">
+                <Text className="text-2xl">🎨</Text>
+              </View>
               <View>
-                <Text className="font-semibold text-neutral-900">
+                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
                   Tailwind CSS (NativeWind)
                 </Text>
-                <Text className="text-sm text-neutral-600">
+                <Text className="text-[14px] text-neutral-600">
                   Utility-first styling framework
                 </Text>
               </View>
             </View>
 
             <View className="flex-row items-center">
-              <Text className="text-2xl mr-3">🔐</Text>
+              <View className="w-12 h-12 bg-purple-50 rounded-full items-center justify-center mr-4">
+                <Text className="text-2xl">🔐</Text>
+              </View>
               <View>
-                <Text className="font-semibold text-neutral-900">
+                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
                   TypeScript
                 </Text>
-                <Text className="text-sm text-neutral-600">
+                <Text className="text-[14px] text-neutral-600">
                   Type-safe development experience
                 </Text>
               </View>
             </View>
 
             <View className="flex-row items-center">
-              <Text className="text-2xl mr-3">🔗</Text>
+              <View className="w-12 h-12 bg-orange-50 rounded-full items-center justify-center mr-4">
+                <Text className="text-2xl">🔗</Text>
+              </View>
               <View>
-                <Text className="font-semibold text-neutral-900">
+                <Text className="font-semibold text-neutral-900 text-[16px] mb-0.5">
                   Blockchain Integration
                 </Text>
-                <Text className="text-sm text-neutral-600">
+                <Text className="text-[14px] text-neutral-600">
                   Transparent transaction tracking
                 </Text>
               </View>
@@ -183,17 +195,17 @@ export default function DashboardSummary() {
       </View>
 
       {/* Database Schema Info */}
-      <View className="p-6">
-        <Text className="text-xl font-bold text-neutral-900 mb-4">
+      <View className="px-4 py-6">
+        <Text className="text-2xl font-bold text-neutral-900 mb-6 px-2">
           Database Schema
         </Text>
 
-        <View className="bg-white rounded-xl p-6 shadow-soft">
-          <Text className="text-neutral-700 mb-4">
+        <View className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-100">
+          <Text className="text-neutral-800 text-[16px] font-medium mb-5">
             Complete agricultural marketplace schema with:
           </Text>
 
-          <View className="space-y-2">
+          <View className="space-y-3.5">
             {[
               "👥 User profiles with role-based access",
               "🥕 Product catalog with GTIN support",
@@ -209,21 +221,23 @@ export default function DashboardSummary() {
               "⚖️ Dispute resolution",
               "📋 Farm task management",
             ].map((item, index) => (
-              <Text key={index} className="text-sm text-neutral-600">
-                {item}
-              </Text>
+              <View key={index} className="flex-row items-center">
+                <Text className="text-[15px] text-neutral leading-5">
+                  {item}
+                </Text>
+              </View>
             ))}
           </View>
         </View>
       </View>
 
       {/* Footer */}
-      <View className="p-6 pb-12">
-        <View className="bg-primary-500 rounded-xl p-6 items-center">
-          <Text className="text-white text-lg font-semibold mb-2">
+      <View className="px-4 pb-12 pt-4">
+        <View className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl px-6 py-8 items-center shadow-lg">
+          <Text className="text-white text-xl font-semibold mb-3">
             Ready to Start Building? 🚀
           </Text>
-          <Text className="text-primary-100 text-center">
+          <Text className="text-primary-100 text-center text-[15px] leading-6">
             Your Krishi Sakhi platform is fully configured with Supabase,
             Tailwind CSS, and comprehensive TypeScript types.
           </Text>

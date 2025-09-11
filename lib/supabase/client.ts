@@ -7,7 +7,14 @@ import { Database } from "../../types/supabase";
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
+console.log('Supabase URL:', supabaseUrl?.slice(0, 10) + '...');
+console.log('Supabase Key exists:', !!supabaseAnonKey);
+
 if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing environment variables:', { 
+    hasUrl: !!supabaseUrl, 
+    hasKey: !!supabaseAnonKey 
+  });
   throw new Error(
     "Missing Supabase environment variables. Please check your .env file."
   );
@@ -62,7 +69,12 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: createStorageAdapter(),
     autoRefreshToken: true,
-    persistSession: typeof window !== "undefined", // Only persist sessions in browser
-    detectSessionInUrl: typeof window !== "undefined" && Platform.OS === "web",
+    persistSession: true,
+    detectSessionInUrl: Platform.OS === "web",
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'krishi-sakhi-farmer@1.0.0'
+    }
   },
 });

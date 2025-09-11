@@ -7,11 +7,11 @@ import { supabase } from "../../lib/supabase/client";
 import { ERROR_CODE_MAPPINGS } from "../config";
 import { logger } from "../logger";
 import {
-  FilterOptions,
-  IRepository,
-  QueryOptions,
-  ServiceErrorCode,
-  SortOptions,
+    FilterOptions,
+    IRepository,
+    QueryOptions,
+    ServiceErrorCode,
+    SortOptions,
 } from "../types";
 
 export abstract class BaseRepository<T = any> implements IRepository<T> {
@@ -110,7 +110,7 @@ export abstract class BaseRepository<T = any> implements IRepository<T> {
   /**
    * Handle database errors consistently
    */
-  protected handleError(error: any, operation: string): never {
+  protected handleError(error: any, operation: string) {
     const errorCode = error.code || "UNKNOWN";
     const mappedCode =
       ERROR_CODE_MAPPINGS[errorCode as keyof typeof ERROR_CODE_MAPPINGS] ||
@@ -122,7 +122,14 @@ export abstract class BaseRepository<T = any> implements IRepository<T> {
       mappedCode,
     });
 
-    throw error;
+    return {
+      data: null,
+      error: {
+        message: error.message || 'An unknown error occurred',
+        code: mappedCode
+      },
+      count: null
+    };
   }
 
   async findAll(options?: QueryOptions): Promise<any> {

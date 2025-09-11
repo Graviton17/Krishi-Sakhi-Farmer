@@ -1,11 +1,23 @@
+import DashboardSummary from '@/components/DashboardSummary';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import SectionCard from '@/components/ui/SectionCard';
+import { useDashboard } from '@/hooks/useDashboard';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import DashboardSummary from '@/components/DashboardSummary';
-import SectionCard from '@/components/ui/SectionCard';
 
 export default function DashboardScreen() {
+  // Use the static user ID for now
+  const { loading, error, data } = useDashboard('static-user-id-123');
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   return (
     <ThemedView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -20,19 +32,49 @@ export default function DashboardScreen() {
 
         <View style={styles.row}>
           <SectionCard title="Revenue (30d)" style={styles.flexItem}>
-            <ThemedText type="title">₹ 1,24,500</ThemedText>
-            <ThemedText>↑ 12% vs last month</ThemedText>
+            <ThemedText type="title">{formatCurrency(data?.revenueLastMonth ?? 0)}</ThemedText>
+            <ThemedText>
+              {data?.revenueGrowth ? (
+                <>
+                  {data.revenueGrowth > 0 ? '↑' : '↓'} {Math.abs(data.revenueGrowth).toFixed(1)}% vs last month
+                </>
+              ) : 'No previous data'}
+            </ThemedText>
           </SectionCard>
           <SectionCard title="Orders in Progress" style={styles.flexItem}>
-            <ThemedText type="title">8</ThemedText>
-            <ThemedText>3 pending shipment</ThemedText>
+            <ThemedText type="title">{data?.activeOrders ?? 0}</ThemedText>
+            <ThemedText>{data?.pendingShipments ?? 0} pending shipment</ThemedText>
           </SectionCard>
         </View>
 
         <SectionCard title="Next actions">
-          <ThemedText>• Confirm pickup for Order #123</ThemedText>
-          <ThemedText>• Create harvesting task for Tomatoes (Fri)</ThemedText>
-          <ThemedText>• Update inventory for Onions (200 kg)</ThemedText>
+          {loading ? (
+            <ThemedText>Loading tasks...</ThemedText>
+          ) : error ? (
+            <ThemedText style={styles.errorText}>Failed to load tasks</ThemedText>
+          ) : data?.pendingTasks.length === 0 ? (
+            <ThemedText>No pending tasks</ThemedText>
+          ) : (
+            data?.pendingTasks.map(task => (
+              <ThemedText key={task.id}>• {task.title}</ThemedText>
+            ))
+          )}
+        </SectionCard>
+
+        <SectionCard title="Inventory Alerts">
+          {loading ? (
+            <ThemedText>Loading alerts...</ThemedText>
+          ) : error ? (
+            <ThemedText style={styles.errorText}>Failed to load inventory alerts</ThemedText>
+          ) : data?.inventoryAlerts.length === 0 ? (
+            <ThemedText>No inventory alerts</ThemedText>
+          ) : (
+            data?.inventoryAlerts.map(alert => (
+              <ThemedText key={alert.productId}>
+                • Low stock: {alert.productName} ({alert.currentStock} {alert.unit})
+              </ThemedText>
+            ))
+          )}
         </SectionCard>
 
         <SectionCard title="Tips">
@@ -42,7 +84,15 @@ export default function DashboardScreen() {
         </SectionCard>
 
         <SectionCard title="Insights">
-          <ThemedText>Weather and price insights will appear here.</ThemedText>
+          {loading ? (
+            <ThemedText>Loading insights...</ThemedText>
+          ) : (
+            <View>
+              <ThemedText>Revenue Growth: {data?.revenueGrowth.toFixed(1)}%</ThemedText>
+              <ThemedText>Active Orders: {data?.activeOrders}</ThemedText>
+              <ThemedText>Tasks Due: {data?.pendingTasks.length}</ThemedText>
+            </View>
+          )}
         </SectionCard>
       </ScrollView>
     </ThemedView>
@@ -68,4 +118,7 @@ const styles = StyleSheet.create({
   flexItem: {
     flex: 1,
   },
+  errorText: {
+    color: '#ff4444'
+  }
 }); 
