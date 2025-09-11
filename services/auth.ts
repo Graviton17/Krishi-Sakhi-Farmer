@@ -200,6 +200,11 @@ export class AuthService implements IAuthService {
         });
       }
 
+      this.logger.debug("Attempting to sign in with Supabase", {
+        emailLength: credentials.email.length,
+        passwordLength: credentials.password.length
+      });
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
